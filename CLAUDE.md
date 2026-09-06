@@ -92,14 +92,26 @@ ADMIN_PASSWORD=your_admin_password
 - 响应格式: `{ "code": 200, "message": "success", "data": ... }`
 - 错误格式: `{ "code": 400, "message": "错误描述", "data": null }`
 
+## 功能模块（页面）
+
+**公共**：登录、注册（仅读者注册）
+
+**管理员端**：图书管理、分类管理、借阅记录（办理归还）
+
+**读者端**：图书浏览、图书详情、我的借阅、我的收藏、个人资料
+
+- 个人资料页：点击右上角头像进入；用户名、姓名只读，手机号、邮箱可编辑保存（手机号 11 位、邮箱含 @ 校验）
+- 退出登录：清除本地登录态（Token），跳转登录页，浏览器后退不可回到业务页面
+
 ## 核心实体
 
 | 实体 | 表名 | 说明 |
 | --- | --- | --- |
-| 用户 | user | id, username, password, role(admin/reader), real_name, contact, created_at |
+| 用户 | user | id, username, password, role(admin/reader), real_name, phone(必填), email(必填), created_at |
 | 分类 | category | id, name(唯一), created_at, updated_at |
 | 图书 | book | id, title, author, isbn(唯一), category_id(FK), publisher, publish_year, total_count, available_count, summary, cover_url, created_at, updated_at |
 | 借阅记录 | borrow_record | id, user_id(FK), book_id(FK), borrow_time, due_time, return_time, status(borrowed/returned/overdue), operator_id |
+| 收藏记录 | favorite | id, user_id(FK), book_id(FK), created_at |
 
 ## 业务规则要点
 
@@ -110,6 +122,9 @@ ADMIN_PASSWORD=your_admin_password
 - 删除图书不清理磁盘封面图片
 - 封面上传限 jpg/png、≤2MB
 - 借还操作需事务保证一致性
+- 个人资料页：用户名、姓名只读，仅手机号/邮箱可编辑保存
+- 退出登录清除 Token 后跳转登录页，后退不可回业务页
+- 收藏：同一读者对同一图书仅一条收藏记录（点击为切换）；图书删除时收藏记录级联删除
 
 ## 开发约定
 
