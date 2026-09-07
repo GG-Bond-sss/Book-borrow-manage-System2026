@@ -29,17 +29,17 @@
         </div>
         <div class="actions">
           <el-button
-            type="primary"
+            :type="borrowBtnType"
             size="large"
-            :disabled="book.available_count <= 0"
+            :disabled="borrowBtnDisabled"
             @click="onBorrow"
-          >借阅此书</el-button>
+          >{{ borrowBtnText }}</el-button>
           <el-button
-            :type="favorited ? 'danger' : 'default'"
+            :type="favStore.isFavorited(bookId) ? 'danger' : 'default'"
             size="large"
-            :icon="favorited ? StarFilled : Star"
+            :icon="favStore.isFavorited(bookId) ? StarFilled : Star"
             @click="onToggleFav"
-          >{{ favorited ? '已收藏' : '收藏' }}</el-button>
+          >{{ favStore.isFavorited(bookId) ? '已收藏' : '收藏' }}</el-button>
         </div>
       </div>
     </div>
@@ -47,26 +47,48 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowLeft, Star, StarFilled } from '@element-plus/icons-vue'
 import BookCover from '@/components/BookCover.vue'
-import { bookApi, borrowApi, favoriteApi } from '@/api'
+import { useBorrowStore } from '@/stores/borrow'
+import { useFavoriteStore } from '@/stores/favorite'
+import { bookApi, borrowApi } from '@/api'
 
 const route = useRoute()
 const router = useRouter()
 
+const borrowStore = useBorrowStore()
+const favStore = useFavoriteStore()
+
 const loading = ref(false)
 const book = ref<any>(null)
-const favorited = ref(false)
+const bookId = computed(() => Number(route.params.id))
+
+/** 借阅按钮文本 */
+const borrowBtnText = computed(() => {
+  if (!book.value) return '借阅'
+  if (borrowStore.isBorrowed(bookId.value)) return '已借阅'
+  if (book.value.available_count <= 0) return '已借完'
+  return '借阅此书'
+})
+/** 借阅按钮类型 */
+const borrowBtnType = computed<'primary' | 'info'>(() => {
+  if (!book.value) return 'primary'
+  if (borrowStore.isBorrowed(bookId.value) || book.value.available_count <= 0) return 'info'
+  return 'primary'
+})
+/** 借阅按钮禁用 */
+const borrowBtnDisabled = computed(() => {
+  if (!book.value) return true
+  return borrowStore.isBorrowed(bookId.value) || book.value.available_count <= 0
+})
 
 async function load() {
   loading.value = true
   try {
-    const id = Number(route.params.id)
-    book.value = await bookApi.getBook(id)
-    favorited.value = await favoriteApi.isFavorited(id)
+    book.value = await bookApi.getBook(bookId.value)
   } catch (e: any) {
     ElMessage.error(e.message || '加载失败')
   } finally {
@@ -81,8 +103,10 @@ async function onBorrow() {
   } catch { return }
   try {
     await borrowApi.borrowBook(book.value.id)
+    // 本地立即更新
+    book.value.available_count = Math.max(0, book.value.available_count - 1)
+    borrowStore.markBorrowed(book.value.id)
     ElMessage.success('借阅成功')
-    await load()
   } catch (e: any) {
     ElMessage.error(e.message || '借阅失败')
   }
@@ -91,15 +115,19 @@ async function onBorrow() {
 async function onToggleFav() {
   if (!book.value) return
   try {
-    const res = await favoriteApi.toggleFavorite(book.value.id)
-    favorited.value = res.favorited
-    ElMessage.success(res.favorited ? '已收藏' : '已取消收藏')
+    const favorited = await favStore.toggle(book.value.id)
+    ElMessage.success(favorited ? '已加入收藏' : '已取消收藏')
   } catch (e: any) {
     ElMessage.error(e.message || '操作失败')
   }
 }
 
-onMounted(load)
+onMounted(async () => {
+  // 确保借阅/收藏状态已加载（从浏览页跳来时已加载，直接刷新详情页时需加载）
+  await borrowStore.load()
+  await favStore.load()
+  load()
+})
 </script>
 
 <style scoped>

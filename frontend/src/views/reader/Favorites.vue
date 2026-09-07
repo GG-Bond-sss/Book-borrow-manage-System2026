@@ -14,17 +14,17 @@
         </div>
         <div class="fav-info">
           <div class="fav-title" @click="goDetail(b.id)">{{ b.title }}</div>
-          <div class="fav-author">{{ b.author }}</div>
+          <div class="fav-author">作者：{{ b.author }}</div>
           <div class="fav-meta">
-            <el-tag size="small">{{ b.category_name }}</el-tag>
+            <el-tag size="small" :type="b.available_count > 0 ? 'success' : 'info'">{{ b.category_name }}</el-tag>
             <span :class="b.available_count > 0 ? 'status-available' : 'status-returned'">
               {{ b.available_count > 0 ? `可借 ${b.available_count}` : '已借完' }}
             </span>
           </div>
           <div class="fav-time">收藏时间：{{ formatTime(b.favorite_time) }}</div>
           <div class="fav-actions">
-            <el-button size="small" @click="goDetail(b.id)">详情</el-button>
-            <el-button type="danger" size="small" :icon="Delete" @click="onUnfav(b)">取消收藏</el-button>
+            <el-button size="small" @click="goDetail(b.id)">查看详情</el-button>
+            <el-button type="danger" plain size="small" :icon="Delete" @click="onUnfav(b)">取消收藏</el-button>
           </div>
         </div>
       </div>
@@ -54,9 +54,11 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Delete } from '@element-plus/icons-vue'
 import BookCover from '@/components/BookCover.vue'
 import { favoriteApi } from '@/api'
+import { useFavoriteStore } from '@/stores/favorite'
 import type { PageQuery } from '@/types'
 
 const router = useRouter()
+const favStore = useFavoriteStore()
 const loading = ref(false)
 const list = ref<any[]>([])
 const total = ref(0)
@@ -73,6 +75,8 @@ async function load() {
     const res = await favoriteApi.listMyFavorites(query)
     list.value = res.list
     total.value = res.total
+    // 同步收藏状态到 store，确保其他页面（浏览页/详情页）状态一致
+    favStore.load(true)
   } finally {
     loading.value = false
   }
@@ -86,7 +90,8 @@ async function onUnfav(b: any) {
     await ElMessageBox.confirm(`确定取消收藏《${b.title}》吗？`, '取消收藏', { type: 'warning' })
   } catch { return }
   try {
-    await favoriteApi.toggleFavorite(b.id)
+    // 通过 store 切换，本地立即移除并同步其他页面
+    await favStore.toggle(b.id)
     ElMessage.success('已取消收藏')
     load()
   } catch (e: any) {
@@ -102,9 +107,10 @@ onMounted(load)
 .toolbar-spacer { flex: 1; }
 .fav-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 14px;
   min-height: 200px;
+  align-items: stretch;
 }
 .fav-card {
   background: #fff;
@@ -114,18 +120,25 @@ onMounted(load)
   display: flex;
   gap: 12px;
   transition: box-shadow 0.2s;
+  min-height: 180px;
 }
 .fav-card:hover { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); }
 .cover-wrap { cursor: pointer; flex-shrink: 0; }
-.fav-info { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+.fav-info { flex: 1; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
 .fav-title {
   font-size: 15px; font-weight: 600; color: #303133; cursor: pointer;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left;
 }
 .fav-title:hover { color: #409eff; }
-.fav-author { font-size: 13px; color: #909399; }
-.fav-meta { display: flex; align-items: center; gap: 10px; font-size: 13px; }
-.fav-time { font-size: 12px; color: #c0c4cc; }
-.fav-actions { margin-top: auto; display: flex; gap: 8px; }
+.fav-author { font-size: 13px; color: #909399; text-align: left; }
+.fav-meta {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 13px; text-align: left; flex-wrap: wrap;
+}
+.fav-time { font-size: 12px; color: #c0c4cc; text-align: left; }
+.fav-actions {
+  margin-top: auto; display: flex; gap: 8px;
+}
+.fav-actions .el-button { flex: 1; }
 .empty { grid-column: 1 / -1; }
 </style>

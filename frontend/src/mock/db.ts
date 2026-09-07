@@ -13,11 +13,14 @@ const KEYS = {
   books: 'lib_books',
   records: 'lib_records',
   favs: 'lib_favs',
-  seq: 'lib_seq'
+  seq: 'lib_seq',
+  ver: 'lib_seed_ver'
 }
 
 export const LOAN_DAYS = 30
 export const BORROW_LIMIT = 5
+/** 种子数据版本：升级后自动重置 localStorage 中的脏数据 */
+export const SEED_VERSION = 2
 
 /* ---------- 基础读写 ---------- */
 function read<T>(key: string, def: T): T {
@@ -55,7 +58,9 @@ export function isOverdue(r: BorrowRecord): boolean {
 
 /* ---------- 初始化种子数据 ---------- */
 export function initSeed() {
-  if (read<User[] | null>(KEYS.users, null) !== null) return
+  const storedVer = read<number>(KEYS.ver, 0)
+  if (storedVer === SEED_VERSION && read<User[] | null>(KEYS.users, null) !== null) return
+  // 版本不匹配或首次初始化：重置全部种子数据，清除脏数据（如"自然"作者为0的错误记录）
 
   const t = now()
   // 用户：预置管理员 + 几个读者
@@ -69,7 +74,8 @@ export function initSeed() {
     { id: 1, name: '文学', created_at: t, updated_at: t },
     { id: 2, name: '科技', created_at: t, updated_at: t },
     { id: 3, name: '历史', created_at: t, updated_at: t },
-    { id: 4, name: '哲学', created_at: t, updated_at: t }
+    { id: 4, name: '哲学', created_at: t, updated_at: t },
+    { id: 5, name: '自然', created_at: t, updated_at: t }
   ]
   // 图书
   const books: Book[] = [
@@ -79,7 +85,8 @@ export function initSeed() {
     { id: 4, title: '明朝那些事儿', author: '当年明月', isbn: '9787540461188', category_id: 3, publisher: '湖南人民出版社', publish_year: 2009, total_count: 6, available_count: 6, summary: '以通俗笔法讲述明朝三百年兴衰。', cover_url: '', created_at: t, updated_at: t },
     { id: 5, title: '苏菲的世界', author: '乔斯坦·贾德', isbn: '9787544263566', category_id: 4, publisher: '南海出版公司', publish_year: 2011, total_count: 2, available_count: 1, summary: '一本西方哲学史的入门小说。', cover_url: '', created_at: t, updated_at: t },
     { id: 6, title: '西游记', author: '吴承恩', isbn: '9787020008704', category_id: 1, publisher: '人民文学出版社', publish_year: 2004, total_count: 3, available_count: 3, summary: '四大名著之一，讲述唐僧师徒西天取经。', cover_url: '', created_at: t, updated_at: t },
-    { id: 7, title: '时间简史', author: '史蒂芬·霍金', isbn: '9787535732309', category_id: 2, publisher: '湖南科学技术出版社', publish_year: 2010, total_count: 2, available_count: 0, summary: '探索宇宙起源与时间本质的科普经典。', cover_url: '', created_at: t, updated_at: t }
+    { id: 7, title: '时间简史', author: '史蒂芬·霍金', isbn: '9787535732309', category_id: 2, publisher: '湖南科学技术出版社', publish_year: 2010, total_count: 2, available_count: 0, summary: '探索宇宙起源与时间本质的科普经典。', cover_url: '', created_at: t, updated_at: t },
+    { id: 8, title: '瓦尔登湖', author: '亨利·戴维·梭罗', isbn: '9787544291707', category_id: 5, publisher: '南海出版公司', publish_year: 2017, total_count: 3, available_count: 3, summary: '记录作者在瓦尔登湖畔自给自足的隐居生活，感悟自然与人生。', cover_url: '', created_at: t, updated_at: t }
   ]
   // 借阅记录：为 reader1 制造几条，其中一条逾期
   const borrowTime = new Date()
@@ -101,7 +108,7 @@ export function initSeed() {
     { id: 1, user_id: 2, book_id: 2, created_at: t },
     { id: 2, user_id: 2, book_id: 5, created_at: t }
   ]
-  const seq: Record<string, number> = { users: 3, cats: 4, books: 7, records: 2, favs: 2 }
+  const seq: Record<string, number> = { users: 3, cats: 5, books: 8, records: 2, favs: 2 }
 
   write(KEYS.users, users)
   write(KEYS.cats, cats)
@@ -109,6 +116,7 @@ export function initSeed() {
   write(KEYS.records, records)
   write(KEYS.favs, favs)
   write(KEYS.seq, seq)
+  write(KEYS.ver, SEED_VERSION)
 }
 
 /* ---------- 通用分页工具 ---------- */

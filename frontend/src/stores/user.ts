@@ -65,9 +65,17 @@ export const useUserStore = defineStore('user', () => {
   }
 
   async function logout() {
+    // 延迟导入避免循环依赖
+    const { useBorrowStore } = await import('@/stores/borrow')
+    const { useFavoriteStore } = await import('@/stores/favorite')
     await authApi.logout()
     user.value = null
     token.value = null
+    // 重置业务状态缓存，防止下个用户看到上个用户的借阅/收藏状态
+    try {
+      useBorrowStore().reset()
+      useFavoriteStore().reset()
+    } catch { /* pinia 未就绪时忽略 */ }
   }
 
   return {

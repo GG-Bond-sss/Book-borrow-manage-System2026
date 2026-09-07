@@ -12,13 +12,13 @@
     </div>
 
     <div v-loading="loading" class="book-grid">
-      <div v-for="b in list" :key="b.id" class="book-card">
+      <div v-for="b in bookList" :key="b.id" class="book-card">
         <div class="cover-wrap" @click="goDetail(b.id)">
           <BookCover :cover-url="b.cover_url" :title="b.title" :width="120" :height="160" />
         </div>
         <div class="book-info">
           <div class="book-title" @click="goDetail(b.id)">{{ b.title }}</div>
-          <div class="book-author">{{ b.author }}</div>
+          <div class="book-author">作者：{{ b.author }}</div>
           <div class="book-meta">
             <el-tag size="small" :type="b.available_count > 0 ? 'success' : 'info'">
               {{ b.category_name }}
@@ -28,17 +28,30 @@
             </span>
           </div>
           <div class="book-actions">
-            <el-button size="small" @click="goDetail(b.id)">查看详情</el-button>
-            <el-button
-              type="primary"
-              size="small"
-              :disabled="b.available_count <= 0"
-              @click="onBorrow(b)"
-            >借阅</el-button>
+            <div class="action-row">
+              <el-button size="small" @click="goDetail(b.id)">查看详情</el-button>
+              <el-button
+                :type="borrowBtnType(b.id, b.available_count)"
+                size="small"
+                :disabled="borrowBtnDisabled(b.id, b.available_count)"
+                @click="onBorrow(b)"
+              >{{ borrowBtnText(b.id, b.available_count) }}</el-button>
+            </div>
+            <div class="action-row">
+              <el-button
+                class="fav-btn"
+                :class="{ 'fav-btn-active': favStore.isFavorited(b.id) }"
+                :type="favStore.isFavorited(b.id) ? 'danger' : 'default'"
+                :plain="!favStore.isFavorited(b.id)"
+                size="small"
+                :icon="favStore.isFavorited(b.id) ? StarFilled : Star"
+                @click="onToggleFav(b)"
+              >{{ favStore.isFavorited(b.id) ? '已收藏' : '收藏' }}</el-button>
+            </div>
           </div>
         </div>
       </div>
-      <div v-if="!loading && list.length === 0" class="empty">
+      <div v-if="!loading && bookList.length === 0" class="empty">
         <el-empty description="暂无图书" />
       </div>
     </div>
@@ -61,15 +74,20 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Star, StarFilled } from '@element-plus/icons-vue'
 import BookCover from '@/components/BookCover.vue'
 import { useCategoryStore } from '@/stores/category'
+import { useBorrowStore } from '@/stores/borrow'
+import { useFavoriteStore } from '@/stores/favorite'
 import { bookApi, borrowApi } from '@/api'
 import type { PageQuery } from '@/types'
 
 const router = useRouter()
 const catStore = useCategoryStore()
+const borrowStore = useBorrowStore()
+const favStore = useFavoriteStore()
 const loading = ref(false)
-const list = ref<any[]>([])
+const bookList = ref<any[]>([])
 const total = ref(0)
 const query = reactive<PageQuery>({
   page: 1, page_size: 10, keyword: '', category_id: null
@@ -79,7 +97,7 @@ async function load() {
   loading.value = true
   try {
     const res = await bookApi.listBooks(query)
-    list.value = res.list
+    bookList.value = res.list
     total.value = res.total
   } finally {
     loading.value = false
@@ -97,6 +115,19 @@ function goDetail(id: number) {
   router.push(`/reader/books/${id}`)
 }
 
+function borrowBtnText(bookId: number, available: number): string {
+  if (borrowStore.isBorrowed(bookId)) return '已借阅'
+  if (available <= 0) return '已借完'
+  return '借阅'
+}
+function borrowBtnType(bookId: number, available: number): 'primary' | 'info' {
+  if (borrowStore.isBorrowed(bookId) || available <= 0) return 'info'
+  return 'primary'
+}
+function borrowBtnDisabled(bookId: number, available: number): boolean {
+  return borrowStore.isBorrowed(bookId) || available <= 0
+}
+
 async function onBorrow(b: any) {
   try {
     await ElMessageBox.confirm(`确定借阅《${b.title}》吗？借期30天。`, '借阅确认', { type: 'info' })
@@ -105,15 +136,27 @@ async function onBorrow(b: any) {
   }
   try {
     await borrowApi.borrowBook(b.id)
+    b.available_count = Math.max(0, b.available_count - 1)
+    borrowStore.markBorrowed(b.id)
     ElMessage.success('借阅成功')
-    load()
   } catch (e: any) {
     ElMessage.error(e.message || '借阅失败')
   }
 }
 
+async function onToggleFav(b: any) {
+  try {
+    const favorited = await favStore.toggle(b.id)
+    ElMessage.success(favorited ? '已加入收藏' : '已取消收藏')
+  } catch (e: any) {
+    ElMessage.error(e.message || '操作失败')
+  }
+}
+
 onMounted(async () => {
   await catStore.load()
+  await borrowStore.load()
+  await favStore.load()
   load()
 })
 </script>
@@ -123,9 +166,10 @@ onMounted(async () => {
 .toolbar-spacer { flex: 1; }
 .book-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
   gap: 16px;
   min-height: 200px;
+  align-items: stretch;
 }
 .book-card {
   background: #fff;
@@ -135,18 +179,51 @@ onMounted(async () => {
   display: flex;
   gap: 14px;
   transition: box-shadow 0.2s;
+  min-height: 200px;
 }
 .book-card:hover { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); }
 .cover-wrap { cursor: pointer; flex-shrink: 0; }
-.book-info { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.book-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
 .book-title {
   font-size: 15px; font-weight: 600; color: #303133;
   cursor: pointer; overflow: hidden; text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: nowrap; text-align: left;
 }
 .book-title:hover { color: #409eff; }
-.book-author { font-size: 13px; color: #909399; }
-.book-meta { display: flex; align-items: center; gap: 10px; font-size: 13px; }
-.book-actions { margin-top: auto; display: flex; gap: 8px; }
+.book-author { font-size: 13px; color: #909399; text-align: left; }
+.book-meta {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 13px; text-align: left; flex-wrap: wrap;
+}
+/* 按钮区：两排，统一布局 */
+.book-actions {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
+}
+.action-row {
+  display: flex;
+  gap: 8px;
+}
+/* 第一排两个按钮均分宽度 */
+.action-row:first-child .el-button {
+  flex: 1;
+}
+/* 第二排收藏按钮占满整行 */
+.action-row:last-child .el-button {
+  flex: 1;
+}
+/* 收藏按钮统一样式：未收藏白底灰边，已收藏红底白字 */
+.fav-btn {
+  transition: all 0.2s;
+}
 .empty { grid-column: 1 / -1; }
 </style>

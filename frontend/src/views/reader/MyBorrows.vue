@@ -73,8 +73,10 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import BookCover from '@/components/BookCover.vue'
 import { borrowApi } from '@/api'
+import { useBorrowStore } from '@/stores/borrow'
 import type { PageQuery, BorrowStatus } from '@/types'
 
+const borrowStore = useBorrowStore()
 const loading = ref(false)
 const list = ref<any[]>([])
 const total = ref(0)
@@ -113,6 +115,8 @@ async function onReturn(row: any) {
   } catch { return }
   try {
     await borrowApi.returnBook(row.id)
+    // 同步更新借阅状态缓存，确保浏览页/详情页的"已借阅"按钮恢复可借
+    borrowStore.markReturned(row.book_id)
     ElMessage.success('归还成功')
     load()
   } catch (e: any) {

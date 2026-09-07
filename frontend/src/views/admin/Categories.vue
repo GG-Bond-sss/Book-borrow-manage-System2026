@@ -68,7 +68,10 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import { categoryApi } from '@/api'
+import { useCategoryStore } from '@/stores/category'
 import type { PageQuery } from '@/types'
+
+const catStore = useCategoryStore()
 
 const loading = ref(false)
 const list = ref<any[]>([])
@@ -128,10 +131,11 @@ async function onSubmit() {
     submitting.value = true
     try {
       if (isEdit.value) {
-        await categoryApi.updateCategory(form.id, form.name)
+        // 通过 store 修改，自动同步到所有下拉框
+        await catStore.update(form.id, form.name)
         ElMessage.success('修改成功')
       } else {
-        await categoryApi.createCategory(form.name)
+        await catStore.create(form.name)
         ElMessage.success('新增成功')
       }
       dialogVisible.value = false
@@ -155,7 +159,8 @@ async function onDelete(row: any) {
     return
   }
   try {
-    await categoryApi.deleteCategory(row.id)
+    // 通过 store 删除，自动从所有下拉框移除
+    await catStore.remove(row.id)
     ElMessage.success('删除成功')
     load()
   } catch (e: any) {
