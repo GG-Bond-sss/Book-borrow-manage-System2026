@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>注册 - 图书借阅管理系统</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex; align-items: center; justify-content: center; padding: 40px 0;
+  }
+  .reg-wrap {
+    width: 440px; background: #fff; border-radius: 14px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2); overflow: hidden;
+  }
+  .reg-header {
+    padding: 32px 32px 16px; text-align: center;
+    background: linear-gradient(135deg, #409eff, #5b8def);
+  }
+  .reg-header .logo { font-size: 36px; }
+  .reg-header h2 { color: #fff; font-size: 20px; margin-top: 8px; }
+  .reg-header p { color: rgba(255,255,255,0.85); font-size: 12px; margin-top: 4px; }
+  .role-tip {
+    margin: 16px 32px 0; background: #ecf5ff; border: 1px solid #d9ecff;
+    color: #409eff; font-size: 12px; padding: 8px 12px; border-radius: 6px;
+    display: flex; align-items: flex-start; gap: 6px; line-height: 1.6;
+  }
+  .role-tip .tip-text { flex: 1; word-break: keep-all; white-space: normal; overflow-wrap: break-word; }
+  .reg-body { padding: 24px 32px 32px; }
+  .form-item { margin-bottom: 14px; }
+  .form-item label { display: block; font-size: 13px; color: #606266; font-weight: 500; padding-bottom: 6px; }
+  .form-item label .req { color: #f56c6c; margin-right: 2px; }
+  .form-item input {
+    width: 100%; height: 42px; padding: 0 14px; border: 1px solid #dcdfe6;
+    border-radius: 8px; font-size: 14px; outline: none;
+  }
+  .form-item input:focus { border-color: #409eff; }
+  .form-item input.err { border-color: #f56c6c; }
+  .error-msg { display: none; color: #f56c6c; font-size: 12px; margin-top: 4px; }
+  .error-msg.show { display: block; }
+  .reg-btn {
+    width: 100%; height: 44px; font-size: 15px; border: none; border-radius: 8px;
+    background: #409eff; color: #fff; cursor: pointer; margin-top: 8px;
+  }
+  .reg-btn:hover { background: #66b1ff; }
+  .login-link { text-align: center; margin-top: 16px; font-size: 13px; color: #909399; }
+  .login-link a { color: #409eff; text-decoration: none; }
+  .back { position: fixed; top: 20px; left: 20px; color: #fff; text-decoration: none; font-size: 13px; opacity: 0.85; }
+  .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #f0f9eb; border: 1px solid #e1f3d8; color: #67c23a; padding: 10px 20px; border-radius: 6px; display: none; z-index: 2000; font-size: 14px; }
+  .toast.show { display: block; }
+</style>
+</head>
+<body>
+<a class="back" href="index.html">← 返回原型导航</a>
+<div class="reg-wrap">
+  <div class="reg-header">
+    <div class="logo">📝</div>
+    <h2>读者注册</h2>
+    <p>创建您的读者账号，开启借阅之旅</p>
+  </div>
+  <div class="role-tip">
+    <span>ⓘ</span>
+    <span class="tip-text">本页面仅支持注册<strong>读者角色</strong>，管理员账号由系统管理员配置。</span>
+  </div>
+  <div class="reg-body">
+    <div class="form-item">
+      <label><span class="req">*</span>用户名</label>
+      <input type="text" id="username" placeholder="请输入用户名" oninput="clearErr(this, 'usernameErr')" />
+      <div class="error-msg" id="usernameErr"></div>
+    </div>
+    <div class="form-item">
+      <label><span class="req">*</span>密码</label>
+      <input type="password" id="password" placeholder="请输入密码（6-20位）" maxlength="20" oninput="clearErr(this, 'passwordErr')" />
+      <div class="error-msg" id="passwordErr"></div>
+    </div>
+    <div class="form-item">
+      <label><span class="req">*</span>确认密码</label>
+      <input type="password" id="confirmPassword" placeholder="请再次输入密码" maxlength="20" oninput="clearErr(this, 'confirmErr')" />
+      <div class="error-msg" id="confirmErr"></div>
+    </div>
+    <div class="form-item">
+      <label><span class="req">*</span>姓名</label>
+      <input type="text" id="realName" placeholder="请输入真实姓名" oninput="clearErr(this, 'realNameErr')" />
+      <div class="error-msg" id="realNameErr"></div>
+    </div>
+    <div class="form-item">
+      <label><span class="req">*</span>手机号</label>
+      <input type="text" id="phone" placeholder="请输入手机号" maxlength="11" oninput="clearErr(this, 'phoneErr')" />
+      <div class="error-msg" id="phoneErr">请输入11位手机号</div>
+    </div>
+    <div class="form-item">
+      <label><span class="req">*</span>邮箱</label>
+      <input type="text" id="email" placeholder="请输入邮箱" oninput="clearErr(this, 'emailErr')" />
+      <div class="error-msg" id="emailErr">邮箱格式不正确</div>
+    </div>
+    <button class="reg-btn" onclick="doRegister()">注 册</button>
+    <div class="login-link">
+      已有账号？<a href="login.html">返回登录</a>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="shared-data.js"></script>
+<script>
+function setErr(inputId, errId, msg) {
+  const input = document.getElementById(inputId);
+  const err = document.getElementById(errId);
+  input.classList.add('err');
+  err.textContent = msg;
+  err.classList.add('show');
+}
+function clearErr(input, errId) {
+  input.classList.remove('err');
+  document.getElementById(errId).classList.remove('show');
+}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(function () { t.classList.remove('show'); }, 2200);
+}
+
+// 注册：角色固定为 reader，写入 localStorage 用户列表（lib_users），用户名不可重复
+function doRegister() {
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+  const confirmPassword = document.getElementById('confirmPassword').value;
+  const realName = document.getElementById('realName').value.trim();
+  const phone = document.getElementById('phone').value.trim();
+  const email = document.getElementById('email').value.trim();
+
+  let ok = true;
+  // 用户名：不为空且不可重复
+  if (!username) { setErr('username', 'usernameErr', '请输入用户名'); ok = false; }
+  else if (LB.usernameExists(username)) { setErr('username', 'usernameErr', '用户名已存在'); ok = false; }
+  else clearErr(document.getElementById('username'), 'usernameErr');
+  // 密码：6-20 位
+  if (password.length < 6 || password.length > 20) { setErr('password', 'passwordErr', '密码长度为6-20位'); ok = false; }
+  else clearErr(document.getElementById('password'), 'passwordErr');
+  // 两次密码一致
+  if (confirmPassword !== password) { setErr('confirmPassword', 'confirmErr', '两次输入的密码不一致'); ok = false; }
+  else clearErr(document.getElementById('confirmPassword'), 'confirmErr');
+  // 姓名不为空
+  if (!realName) { setErr('realName', 'realNameErr', '请输入姓名'); ok = false; }
+  else clearErr(document.getElementById('realName'), 'realNameErr');
+  // 手机号：11位数字
+  if (!/^\d{11}$/.test(phone)) { setErr('phone', 'phoneErr', '请输入11位手机号'); ok = false; }
+  else clearErr(document.getElementById('phone'), 'phoneErr');
+  // 邮箱：含@符号
+  if (!/.+@.+/.test(email)) { setErr('email', 'emailErr', '邮箱格式不正确'); ok = false; }
+  else clearErr(document.getElementById('email'), 'emailErr');
+  if (!ok) return;
+
+  LB.addUser({
+    username: username, password: password, role: 'reader', realName: realName,
+    phone: phone, email: email, createdAt: LB.fmt(new Date())
+  });
+  showToast('注册成功，请登录');
+  setTimeout(function () { location.href = 'login.html'; }, 2000);
+}
+</script>
+</body>
+</html>

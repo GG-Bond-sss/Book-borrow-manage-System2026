@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>我的收藏 - 图书借阅系统</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f0f2f5; font-size: 14px; }
+  .layout { display: flex; height: 100vh; }
+  .sidebar { width: 220px; background: #1f2d3d; color: #fff; flex-shrink: 0; }
+  .sidebar .logo { padding: 20px; font-size: 18px; font-weight: bold; border-bottom: 1px solid #2d3e50; }
+  .sidebar .menu { padding: 10px 0; }
+  .sidebar .menu-item { padding: 14px 20px; cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 14px; text-decoration: none; color: #ffffff; }
+  .sidebar .menu-item:hover { background: #2d3e50; color: #ffffff; }
+  .sidebar .menu-item.active { background: #409eff; color: #ffffff; }
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+  .header { height: 60px; background: #fff; box-shadow: 0 1px 4px rgba(0,21,41,0.08); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; flex-shrink: 0; }
+  .header .title { font-size: 16px; font-weight: 600; color: #303133; }
+  .header .user { display: flex; align-items: center; gap: 10px; font-size: 14px; color: #606266; cursor: pointer; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: #67c23a; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  .content { flex: 1; padding: 20px; overflow: auto; }
+
+  .fav-count { background: #fff; border-radius: 8px; padding: 14px 20px; margin-bottom: 16px; color: #606266; }
+  .fav-count b { color: #409eff; font-size: 16px; }
+  .table-card { background: #fff; border-radius: 8px; padding: 16px 20px; overflow-x: auto; }
+  table { width: 100%; min-width: 780px; border-collapse: collapse; }
+  th, td { padding: 12px 10px; text-align: left; border-bottom: 1px solid #ebeef5; font-size: 14px; white-space: nowrap; }
+  th { background: #f5f7fa; color: #303133; font-weight: 600; }
+  tbody tr:hover { background: #f5f7fa; }
+  .cover-sm { width: 40px; height: 54px; border-radius: 4px; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; vertical-align: middle; }
+  .avail-ok { color: #67c23a; font-weight: 600; }
+  .avail-zero { color: #f56c6c; font-weight: 600; }
+  .tag-off { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; background: #f4f4f5; color: #909399; margin-left: 6px; }
+  .link-btn { border: none; background: none; cursor: pointer; font-size: 13px; padding: 2px 6px; }
+  .link-detail { color: #409eff; }
+  .link-cancel { color: #f56c6c; }
+  .link-btn.disabled { color: #c0c4cc; cursor: not-allowed; }
+  .empty { text-align: center; color: #909399; padding: 60px 0; }
+  .empty a { color: #409eff; text-decoration: none; }
+
+  .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #f0f9eb; border: 1px solid #e1f3d8; color: #67c23a; padding: 10px 20px; border-radius: 6px; display: none; z-index: 2000; }
+  .toast.show { display: block; }
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="logo">📚 图书借阅系统</div>
+    <div class="menu">
+      <a class="menu-item" href="reader-books.html">📚 图书浏览</a>
+      <a class="menu-item" href="reader-my-borrows.html">📅 我的借阅</a>
+      <a class="menu-item active">⭐ 我的收藏</a>
+    </div>
+  </aside>
+  <div class="main">
+    <header class="header">
+      <div class="title">我的收藏</div>
+      <div class="user" onclick="location.href='reader-profile.html'">
+        <div class="avatar" id="avatarEl">读</div>
+        <span id="userText">读者</span>
+      </div>
+    </header>
+    <div class="content">
+      <div class="fav-count">共收藏 <b id="favCount">0</b> 本图书</div>
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:70px;text-align:center">封面</th>
+              <th>书名</th>
+              <th style="width:150px">作者</th>
+              <th style="width:100px">分类</th>
+              <th style="width:130px;text-align:center">可借数量</th>
+              <th style="width:130px">收藏时间</th>
+              <th style="width:150px;text-align:center">操作</th>
+            </tr>
+          </thead>
+          <tbody id="favTbody"></tbody>
+        </table>
+        <div class="empty" id="emptyTip" style="display:none">
+          暂无收藏图书，<a href="reader-books.html">去图书浏览看看 →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="shared-data.js"></script>
+<script>
+// 登录拦截：未登录跳转登录页；顶栏渲染当前登录用户
+LB.requireLogin();
+LB.renderHeaderUser('avatarEl', 'userText');
+</script>
+<script>
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(function () { t.classList.remove('show'); }, 2200);
+}
+
+function render() {
+  const favs = LB.getFavs();
+  document.getElementById('favCount').textContent = favs.length;
+  document.getElementById('emptyTip').style.display = favs.length ? 'none' : 'block';
+
+  document.getElementById('favTbody').innerHTML = favs.map(function (f) {
+    const b = LB.getBook(f.isbn);
+    const favTime = f.favTime || f.createdAt || '—';
+    if (!b) {
+      // 图书已被管理员删除：标记已下架，仅可取消收藏
+      return '<tr>' +
+        '<td style="text-align:center"><span class="cover-sm" style="background:#c0c4cc">?</span></td>' +
+        '<td>已下架图书<span class="tag-off">已下架</span></td>' +
+        '<td>—</td><td>—</td><td style="text-align:center">—</td>' +
+        '<td>' + favTime + '</td>' +
+        '<td style="text-align:center">' +
+          '<button class="link-btn disabled" disabled>查看详情</button>' +
+          '<button class="link-btn link-cancel" onclick="cancelFav(\'' + f.isbn + '\')">取消收藏</button>' +
+        '</td>' +
+      '</tr>';
+    }
+    const zero = b.availableCount <= 0;
+    return '<tr>' +
+      '<td style="text-align:center"><span class="cover-sm" style="background:' + b.color + '">' + b.title.charAt(0) + '</span></td>' +
+      '<td>' + b.title + '</td>' +
+      '<td>' + b.author + '</td>' +
+      '<td>' + LB.catName(b.categoryId) + '</td>' +
+      '<td style="text-align:center"><span class="' + (zero ? 'avail-zero' : 'avail-ok') + '">' +
+        b.availableCount + ' / ' + b.totalCount + '</span>' + (zero ? '<br><span style="font-size:12px;color:#f56c6c">已借完</span>' : '') + '</td>' +
+      '<td>' + favTime + '</td>' +
+      '<td style="text-align:center">' +
+        '<a class="link-btn link-detail" href="reader-book-detail.html?isbn=' + b.isbn + '">查看详情</a>' +
+        '<button class="link-btn link-cancel" onclick="cancelFav(\'' + b.isbn + '\')">取消收藏</button>' +
+      '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+/* 取消收藏：先写 localStorage（浏览页/详情页按钮同步变化），再刷新列表 */
+function cancelFav(isbn) {
+  LB.toggleFav(isbn);
+  showToast('已取消收藏');
+  render();
+}
+
+render();
+</script>
+</body>
+</html>

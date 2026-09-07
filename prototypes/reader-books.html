@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>图书浏览 - 图书借阅系统</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f0f2f5; font-size: 14px; }
+  .layout { display: flex; height: 100vh; }
+  .sidebar { width: 220px; background: #1f2d3d; color: #fff; flex-shrink: 0; }
+  .sidebar .logo { padding: 20px; font-size: 18px; font-weight: bold; border-bottom: 1px solid #2d3e50; }
+  .sidebar .menu { padding: 10px 0; }
+  .sidebar .menu-item { padding: 14px 20px; cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 14px; text-decoration: none; color: #ffffff; }
+  .sidebar .menu-item:hover { background: #2d3e50; color: #ffffff; }
+  .sidebar .menu-item.active { background: #409eff; color: #ffffff; }
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+  .header { height: 60px; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; flex-shrink: 0; }
+  .header h2 { font-size: 16px; font-weight: 600; color: #303133; }
+  .user-info { display: flex; align-items: center; gap: 10px; color: #606266; font-size: 14px; cursor: pointer; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: #67c23a; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; }
+  .content { padding: 20px; flex: 1; overflow-y: auto; }
+
+  .search-bar { background: #fff; padding: 18px 20px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .search-bar input, .search-bar select { height: 38px; padding: 0 12px; border: 1px solid #dcdfe6; border-radius: 4px; font-size: 14px; outline: none; }
+  .search-bar input:focus, .search-bar select:focus { border-color: #409eff; }
+  .search-bar input { width: 260px; }
+  .search-bar select { width: 160px; }
+  .btn { height: 38px; padding: 0 18px; border: 1px solid #dcdfe6; border-radius: 4px; background: #fff; color: #606266; cursor: pointer; font-size: 14px; }
+  .btn:hover { color: #409eff; border-color: #c6e2ff; background: #ecf5ff; }
+  .btn-primary { background: #409eff; border-color: #409eff; color: #fff; }
+  .btn-primary:hover { background: #66b1ff; border-color: #66b1ff; color: #fff; }
+
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  @media (max-width: 1200px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+  .card { background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); display: flex; flex-direction: column; }
+  .card-cover { height: 150px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 52px; font-weight: bold; position: relative; }
+  .card-cover .badge { position: absolute; top: 10px; right: 10px; font-size: 12px; padding: 3px 10px; border-radius: 10px; background: rgba(255,255,255,0.85); }
+  .badge-ok { color: #67c23a; }
+  .badge-out { color: #909399; }
+  .card-body { padding: 14px 16px; flex: 1; }
+  .card-title { font-size: 16px; font-weight: 600; color: #303133; margin-bottom: 8px; }
+  .card-meta { color: #606266; font-size: 13px; line-height: 1.8; }
+  .card-meta .avail { font-weight: 600; }
+  .avail-ok { color: #67c23a; }
+  .avail-zero { color: #f56c6c; }
+  .card-footer { padding: 12px 16px; border-top: 1px solid #f0f0f0; display: flex; gap: 8px; }
+  .card-footer .btn { flex: 1; min-width: 0; height: 34px; padding: 0 6px; font-size: 13px; white-space: nowrap; text-align: center; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
+  .btn-fav { color: #f56c6c; border-color: #fbc4c4; }
+  .btn-fav:hover { color: #f56c6c; border-color: #f56c6c; background: #fef0f0; }
+  .btn-faved { background: #f56c6c; border-color: #f56c6c; color: #fff; }
+  .btn-faved:hover { background: #f78989; border-color: #f78989; color: #fff; }
+  .btn-borrow { background: #409eff; border-color: #409eff; color: #fff; }
+  .btn-borrow:hover { background: #66b1ff; border-color: #66b1ff; color: #fff; }
+  .btn-disabled { background: #f5f7fa; border-color: #e4e7ed; color: #c0c4cc; cursor: not-allowed; }
+  .btn-disabled:hover { background: #f5f7fa; border-color: #e4e7ed; color: #c0c4cc; }
+  .empty { text-align: center; color: #909399; padding: 60px 0; background: #fff; border-radius: 8px; }
+
+  .pagination { display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 20px; color: #606266; font-size: 13px; }
+  .pagination button { min-width: 32px; height: 32px; border: 1px solid #dcdfe6; background: #fff; border-radius: 4px; cursor: pointer; color: #606266; }
+  .pagination button.active { background: #409eff; border-color: #409eff; color: #fff; }
+  .pagination button:disabled { color: #c0c4cc; cursor: not-allowed; background: #f5f7fa; }
+
+  /* 借阅确认弹窗 */
+  .modal-mask { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: flex-start; justify-content: center; padding-top: 18vh; }
+  .modal-mask.show { display: flex; }
+  .modal { background: #fff; border-radius: 8px; width: 400px; }
+  .modal-header { padding: 16px 20px; border-bottom: 1px solid #ebeef5; display: flex; justify-content: space-between; align-items: center; }
+  .modal-header h3 { font-size: 16px; color: #303133; }
+  .modal-close { cursor: pointer; color: #909399; font-size: 18px; border: none; background: none; }
+  .modal-body { padding: 20px; color: #606266; }
+  .modal-footer { padding: 12px 20px; border-top: 1px solid #ebeef5; display: flex; justify-content: flex-end; gap: 10px; }
+  .modal-footer .btn { height: 34px; font-size: 13px; padding: 0 16px; }
+
+  .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #f0f9eb; border: 1px solid #e1f3d8; color: #67c23a; padding: 10px 20px; border-radius: 6px; display: none; z-index: 2000; }
+  .toast.show { display: block; }
+  .toast.err { background: #fef0f0; border-color: #fde2e2; color: #f56c6c; }
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="logo">📚 图书借阅系统</div>
+    <div class="menu">
+      <a class="menu-item active">📚 图书浏览</a>
+      <a class="menu-item" href="reader-my-borrows.html">📅 我的借阅</a>
+      <a class="menu-item" href="reader-favorites.html">⭐ 我的收藏</a>
+    </div>
+  </aside>
+  <div class="main">
+    <div class="header">
+      <h2>图书浏览</h2>
+      <div class="user-info" onclick="location.href='reader-profile.html'">
+        <div class="avatar" id="avatarEl">读</div><span id="userText">读者</span>
+      </div>
+    </div>
+    <div class="content">
+      <div class="search-bar">
+        <input type="text" id="kw" placeholder="请输入书名/作者/ISBN" onkeydown="if(event.key==='Enter')doSearch()" />
+        <select id="catFilter"><option value="">全部分类</option></select>
+        <button class="btn btn-primary" onclick="doSearch()">搜索</button>
+        <button class="btn" onclick="resetSearch()">重置</button>
+      </div>
+      <div class="grid" id="cardGrid"></div>
+      <div class="empty" id="emptyTip" style="display:none">未找到匹配的图书，请调整筛选条件</div>
+      <div class="pagination" id="pager"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 借阅确认弹窗 -->
+<div class="modal-mask" id="borrowModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>借阅确认</h3>
+      <button class="modal-close" onclick="closeBorrow()">×</button>
+    </div>
+    <div class="modal-body" id="borrowText"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeBorrow()">取消</button>
+      <button class="btn btn-primary" onclick="confirmBorrow()">确认借阅</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="shared-data.js"></script>
+<script>
+// 登录拦截：未登录跳转登录页；顶栏渲染当前登录用户
+LB.requireLogin();
+LB.renderHeaderUser('avatarEl', 'userText');
+</script>
+<script>
+const PAGE_SIZE = 6;
+let filtered = [];
+let page = 1;
+let borrowIsbn = null;
+
+function showToast(msg, isErr) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isErr ? ' err' : '');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(function () { t.className = 'toast' + (isErr ? ' err' : ''); }, 2200);
+}
+
+function fillCatFilter() {
+  const sel = document.getElementById('catFilter');
+  sel.innerHTML = '<option value="">全部分类</option>' +
+    LB.getCats().map(function (c) { return '<option value="' + c.id + '">' + c.name + '</option>'; }).join('');
+}
+
+function getFiltered() {
+  const kw = document.getElementById('kw').value.trim().toLowerCase();
+  const cat = document.getElementById('catFilter').value;
+  return LB.getBooks().filter(function (b) {
+    const okKw = !kw || b.title.toLowerCase().indexOf(kw) >= 0 ||
+      b.author.toLowerCase().indexOf(kw) >= 0 || b.isbn.indexOf(kw) >= 0;
+    const okCat = !cat || String(b.categoryId) === cat;
+    return okKw && okCat;
+  });
+}
+
+function render() {
+  filtered = getFiltered();
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  if (page > totalPages) page = totalPages;
+  const rows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  document.getElementById('emptyTip').style.display = filtered.length ? 'none' : 'block';
+  document.getElementById('cardGrid').innerHTML = rows.map(function (b) {
+    const zero = b.availableCount <= 0;
+    const borrowed = LB.isBorrowed(b.isbn);   // 当前读者是否已借未还
+    const faved = LB.isFav(b.isbn);
+    let borrowBtn;
+    if (zero) {
+      borrowBtn = '<button class="btn btn-disabled" disabled>已借完</button>';
+    } else if (borrowed) {
+      borrowBtn = '<button class="btn btn-disabled" disabled>已借阅</button>';
+    } else {
+      borrowBtn = '<button class="btn btn-borrow" onclick="askBorrow(\'' + b.isbn + '\')">借阅</button>';
+    }
+    const coverInner = b.cover_url
+      ? '<img src="' + b.cover_url + '" alt="封面" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" /><span style="position:absolute;inset:0;display:none;align-items:center;justify-content:center;color:#fff;font-size:52px;font-weight:bold;background:' + (b.color || '#34495e') + '">' + b.title.charAt(0) + '</span>'
+      : b.title.charAt(0);
+    return '<div class="card">' +
+      '<div class="card-cover" style="background:' + b.color + '">' +
+        coverInner +
+        '<span class="badge ' + (zero ? 'badge-out' : 'badge-ok') + '">' + (zero ? '已借完' : '可借') + '</span>' +
+      '</div>' +
+      '<div class="card-body">' +
+        '<div class="card-title">' + b.title + '</div>' +
+        '<div class="card-meta">' +
+          '作者：' + b.author + '<br>' +
+          '分类：' + LB.catName(b.categoryId) + '<br>' +
+          'ISBN：' + b.isbn + '<br>' +
+          '可借 <span class="avail ' + (zero ? 'avail-zero' : 'avail-ok') + '">' + b.availableCount + '</span> / 总 ' + b.totalCount +
+        '</div>' +
+      '</div>' +
+      '<div class="card-footer">' +
+        '<button class="btn ' + (faved ? 'btn-faved' : 'btn-fav') + '" onclick="toggleFav(\'' + b.isbn + '\')">' +
+          (faved ? '♥ 已收藏' : '♡ 收藏') + '</button>' +
+        borrowBtn +
+        '<a class="btn" href="reader-book-detail.html?isbn=' + b.isbn + '">详情</a>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  let html = '<span>共 ' + filtered.length + ' 本</span>';
+  html += '<button ' + (page <= 1 ? 'disabled' : '') + ' onclick="goPage(' + (page - 1) + ')">‹</button>';
+  for (let i = 1; i <= totalPages; i++) {
+    html += '<button class="' + (i === page ? 'active' : '') + '" onclick="goPage(' + i + ')">' + i + '</button>';
+  }
+  html += '<button ' + (page >= totalPages ? 'disabled' : '') + ' onclick="goPage(' + (page + 1) + ')">›</button>';
+  document.getElementById('pager').innerHTML = html;
+}
+function goPage(p) { page = p; render(); }
+function doSearch() { page = 1; render(); }
+function resetSearch() {
+  document.getElementById('kw').value = '';
+  document.getElementById('catFilter').value = '';
+  page = 1;
+  render();
+}
+
+/* 收藏切换：先写 localStorage 再刷新当前卡片 */
+function toggleFav(isbn) {
+  const faved = LB.toggleFav(isbn);
+  showToast(faved ? '已加入收藏' : '已取消收藏');
+  render();
+}
+
+/* 借阅：确认后生成借阅记录、可借数 -1（统一数据层处理） */
+function askBorrow(isbn) {
+  borrowIsbn = isbn;
+  const b = LB.getBook(isbn);
+  document.getElementById('borrowText').innerHTML =
+    '确认借阅《' + b.title + '》吗？<br>借期 ' + LB.LOAN_DAYS + ' 天，请在应还日期前归还。';
+  document.getElementById('borrowModal').classList.add('show');
+}
+function closeBorrow() { document.getElementById('borrowModal').classList.remove('show'); }
+function confirmBorrow() {
+  const res = LB.borrow(borrowIsbn);
+  closeBorrow();
+  if (res.ok) {
+    showToast('借阅成功！可借数量减 1，可在「我的借阅」查看');
+  } else {
+    showToast(res.msg, true);
+  }
+  render();
+}
+
+fillCatFilter();
+render();
+</script>
+</body>
+</html>

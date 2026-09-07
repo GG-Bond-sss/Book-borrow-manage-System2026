@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>图书详情 - 图书借阅系统</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f0f2f5; font-size: 14px; }
+  .layout { display: flex; height: 100vh; }
+  .sidebar { width: 220px; background: #1f2d3d; color: #fff; flex-shrink: 0; }
+  .sidebar .logo { padding: 20px; font-size: 18px; font-weight: bold; border-bottom: 1px solid #2d3e50; }
+  .sidebar .menu { padding: 10px 0; }
+  .sidebar .menu-item { padding: 14px 20px; cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 14px; text-decoration: none; color: #ffffff; }
+  .sidebar .menu-item:hover { background: #2d3e50; color: #ffffff; }
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+  .header { height: 60px; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; flex-shrink: 0; }
+  .header .title { font-size: 16px; font-weight: 600; color: #303133; }
+  .header .back { color: #409eff; cursor: pointer; font-size: 13px; margin-right: 8px; text-decoration: none; }
+  .user-info { display: flex; align-items: center; gap: 10px; color: #606266; font-size: 14px; cursor: pointer; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: #67c23a; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; }
+  .content { padding: 20px; flex: 1; overflow-y: auto; }
+
+  .detail-card { background: #fff; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); padding: 24px; display: flex; gap: 24px; margin-bottom: 20px; }
+  .cover-box { width: 180px; height: 250px; border-radius: 8px; color: #fff; font-size: 72px; font-weight: bold; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .info { flex: 1; }
+  .info h2 { font-size: 22px; color: #303133; margin-bottom: 14px; }
+  .info-row { color: #606266; line-height: 2; }
+  .info-row b { color: #303133; font-weight: 600; display: inline-block; width: 80px; }
+  .avail-ok { color: #67c23a; font-weight: 600; }
+  .avail-zero { color: #f56c6c; font-weight: 600; }
+  .actions { margin-top: 20px; display: flex; gap: 12px; }
+  .btn { height: 40px; padding: 0 26px; border: 1px solid #dcdfe6; border-radius: 4px; background: #fff; color: #606266; cursor: pointer; font-size: 14px; }
+  .btn:hover { color: #409eff; border-color: #c6e2ff; background: #ecf5ff; }
+  .btn-primary { background: #409eff; border-color: #409eff; color: #fff; }
+  .btn-primary:hover { background: #66b1ff; border-color: #66b1ff; color: #fff; }
+  .btn-fav { color: #f56c6c; border-color: #fbc4c4; }
+  .btn-fav:hover { color: #f56c6c; border-color: #f56c6c; background: #fef0f0; }
+  .btn-faved { background: #f56c6c; border-color: #f56c6c; color: #fff; }
+  .btn-faved:hover { background: #f78989; border-color: #f78989; color: #fff; }
+  .btn-disabled { background: #f5f7fa; border-color: #e4e7ed; color: #c0c4cc; cursor: not-allowed; }
+  .btn-disabled:hover { background: #f5f7fa; border-color: #e4e7ed; color: #c0c4cc; }
+
+  .summary-card { background: #fff; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); padding: 24px; }
+  .summary-card h3 { font-size: 16px; color: #303133; margin-bottom: 12px; }
+  .summary-card p { color: #606266; line-height: 1.9; }
+
+  .modal-mask { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: flex-start; justify-content: center; padding-top: 18vh; }
+  .modal-mask.show { display: flex; }
+  .modal { background: #fff; border-radius: 8px; width: 400px; }
+  .modal-header { padding: 16px 20px; border-bottom: 1px solid #ebeef5; display: flex; justify-content: space-between; align-items: center; }
+  .modal-header h3 { font-size: 16px; color: #303133; }
+  .modal-close { cursor: pointer; color: #909399; font-size: 18px; border: none; background: none; }
+  .modal-body { padding: 20px; color: #606266; }
+  .modal-footer { padding: 12px 20px; border-top: 1px solid #ebeef5; display: flex; justify-content: flex-end; gap: 10px; }
+  .modal-footer .btn { height: 34px; font-size: 13px; padding: 0 16px; }
+
+  .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #f0f9eb; border: 1px solid #e1f3d8; color: #67c23a; padding: 10px 20px; border-radius: 6px; display: none; z-index: 2000; }
+  .toast.show { display: block; }
+  .toast.err { background: #fef0f0; border-color: #fde2e2; color: #f56c6c; }
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="logo">📚 图书借阅系统</div>
+    <div class="menu">
+      <a class="menu-item" href="reader-books.html">📚 图书浏览</a>
+      <a class="menu-item" href="reader-my-borrows.html">📅 我的借阅</a>
+      <a class="menu-item" href="reader-favorites.html">⭐ 我的收藏</a>
+    </div>
+  </aside>
+  <div class="main">
+    <div class="header">
+      <div class="title"><a class="back" href="reader-books.html">← 返回</a>图书详情</div>
+      <div class="user-info" onclick="location.href='reader-profile.html'">
+        <div class="avatar" id="avatarEl">读</div><span id="userText">读者</span>
+      </div>
+    </div>
+    <div class="content">
+      <div class="detail-card" id="detailBox"></div>
+      <div class="summary-card" id="summaryBox" style="display:none">
+        <h3>内容简介</h3>
+        <p id="summaryText"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 借阅确认弹窗 -->
+<div class="modal-mask" id="borrowModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>借阅确认</h3>
+      <button class="modal-close" onclick="closeBorrow()">×</button>
+    </div>
+    <div class="modal-body" id="borrowText"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeBorrow()">取消</button>
+      <button class="btn btn-primary" onclick="confirmBorrow()">确认借阅</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="shared-data.js"></script>
+<script>
+// 登录拦截：未登录跳转登录页；顶栏渲染当前登录用户
+LB.requireLogin();
+LB.renderHeaderUser('avatarEl', 'userText');
+</script>
+<script>
+const isbn = new URLSearchParams(location.search).get('isbn') || '9787506365437';
+let book = null;
+
+function showToast(msg, isErr) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isErr ? ' err' : '');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(function () { t.className = 'toast' + (isErr ? ' err' : ''); }, 2200);
+}
+
+function render() {
+  book = LB.getBook(isbn);
+  const box = document.getElementById('detailBox');
+  if (!book) {
+    // 图书已被管理员删除
+    box.innerHTML = '<div style="flex:1;text-align:center;padding:60px 0;color:#909399">' +
+      '<div style="font-size:40px;margin-bottom:12px">📕</div>' +
+      '该图书已下架或不存在<br><br>' +
+      '<a class="btn btn-primary" href="reader-books.html" style="text-decoration:none;display:inline-block;line-height:40px">返回图书浏览</a>' +
+      '</div>';
+    return;
+  }
+  const zero = book.availableCount <= 0;
+  const borrowed = LB.isBorrowed(book.isbn);
+  const faved = LB.isFav(book.isbn);
+  let borrowBtn;
+  if (zero) borrowBtn = '<button class="btn btn-disabled" disabled>已借完</button>';
+  else if (borrowed) borrowBtn = '<button class="btn btn-disabled" disabled>已借阅</button>';
+  else borrowBtn = '<button class="btn btn-primary" onclick="askBorrow()">立即借阅</button>';
+
+  const coverHtml = book.cover_url
+    ? '<img src="' + book.cover_url + '" alt="封面" style="width:100%;height:100%;object-fit:cover;border-radius:8px" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" /><span style="position:absolute;inset:0;display:none;align-items:center;justify-content:center;border-radius:8px;background:' + book.color + '">' + book.title.charAt(0) + '</span>'
+    : book.title.charAt(0);
+
+  box.innerHTML =
+    '<div class="cover-box" style="background:' + book.color + ';position:relative">' + coverHtml + '</div>' +
+    '<div class="info">' +
+      '<h2>' + book.title + '</h2>' +
+      '<div class="info-row"><b>作者</b>' + book.author + '</div>' +
+      '<div class="info-row"><b>ISBN</b>' + book.isbn + '</div>' +
+      '<div class="info-row"><b>分类</b>' + LB.catName(book.categoryId) + '</div>' +
+      '<div class="info-row"><b>出版社</b>' + (book.publisher || '—') + '</div>' +
+      '<div class="info-row"><b>出版年份</b>' + (book.year || '—') + '</div>' +
+      '<div class="info-row"><b>馆藏状态</b>可借 <span class="' + (zero ? 'avail-zero' : 'avail-ok') + '">' +
+        book.availableCount + '</span> / 总 ' + book.totalCount + ' 册</div>' +
+      '<div class="actions">' +
+        borrowBtn +
+        '<button class="btn ' + (faved ? 'btn-faved' : 'btn-fav') + '" onclick="toggleFav()">' +
+          (faved ? '♥ 已收藏' : '♡ 收藏') + '</button>' +
+      '</div>' +
+    '</div>';
+
+  if (book.summary) {
+    document.getElementById('summaryBox').style.display = 'block';
+    document.getElementById('summaryText').textContent = book.summary;
+  }
+}
+
+function toggleFav() {
+  const faved = LB.toggleFav(isbn);
+  showToast(faved ? '已加入收藏' : '已取消收藏');
+  render();
+}
+
+function askBorrow() {
+  document.getElementById('borrowText').innerHTML =
+    '确认借阅《' + book.title + '》吗？<br>借期 ' + LB.LOAN_DAYS + ' 天，请在应还日期前归还。';
+  document.getElementById('borrowModal').classList.add('show');
+}
+function closeBorrow() { document.getElementById('borrowModal').classList.remove('show'); }
+function confirmBorrow() {
+  const res = LB.borrow(isbn);
+  closeBorrow();
+  if (res.ok) {
+    showToast('借阅成功！可在「我的借阅」中查看');
+    setTimeout(function () { location.href = 'reader-my-borrows.html'; }, 900);
+  } else {
+    showToast(res.msg, true);
+  }
+  render();
+}
+
+render();
+</script>
+</body>
+</html>

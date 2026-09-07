@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>个人资料 - 图书借阅系统</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f0f2f5; font-size: 14px; }
+  .layout { display: flex; height: 100vh; }
+  .sidebar { width: 220px; background: #1f2d3d; color: #fff; flex-shrink: 0; }
+  .sidebar .logo { padding: 20px; font-size: 18px; font-weight: bold; border-bottom: 1px solid #2d3e50; }
+  .sidebar .menu { padding: 10px 0; }
+  .sidebar .menu-item { padding: 14px 20px; cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 14px; text-decoration: none; color: #ffffff; }
+  .sidebar .menu-item:hover { background: #2d3e50; color: #ffffff; }
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+  .header { height: 60px; background: #fff; box-shadow: 0 1px 4px rgba(0,21,41,0.08); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; flex-shrink: 0; }
+  .header .title { font-size: 16px; font-weight: 600; color: #303133; }
+  .header .user { display: flex; align-items: center; gap: 10px; font-size: 14px; color: #606266; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: #67c23a; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  .content { flex: 1; padding: 20px; overflow: auto; }
+
+  .profile-card { background: #fff; border-radius: 8px; padding: 28px 32px; max-width: 640px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+  .profile-card h3 { font-size: 16px; color: #303133; margin-bottom: 20px; }
+  .form-item { margin-bottom: 18px; }
+  .form-item label { display: block; color: #606266; margin-bottom: 6px; }
+  .form-item label .req { color: #f56c6c; margin-right: 2px; }
+  .form-item input { width: 100%; height: 40px; padding: 0 12px; border: 1px solid #dcdfe6; border-radius: 4px; font-size: 14px; color: #303133; outline: none; }
+  .form-item input:focus { border-color: #409eff; }
+  .form-item input[readonly] { background: #f5f7fa; color: #909399; cursor: not-allowed; border-color: #e4e7ed; }
+  .form-item input.err { border-color: #f56c6c; }
+  .error-msg { display: none; color: #f56c6c; font-size: 12px; margin-top: 4px; }
+  .error-msg.show { display: block; }
+
+  .btn { height: 38px; padding: 0 22px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
+  .btn-primary { background: #409eff; color: #fff; }
+  .btn-primary:hover { background: #66b1ff; }
+  .btn-danger { background: #f56c6c; color: #fff; }
+  .btn-danger:hover { background: #f78989; }
+  .action-row { display: flex; gap: 12px; margin-top: 24px; }
+  .pwd-card { margin-top: 16px; }
+  .pwd-card h3 { padding-bottom: 14px; border-bottom: 1px solid #ebeef5; }
+
+  /* 退出登录确认弹窗 */
+  .modal-mask { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: flex-start; justify-content: center; padding-top: 15vh; }
+  .modal-mask.show { display: flex; }
+  .modal { background: #fff; border-radius: 8px; width: 400px; }
+  .modal-header { padding: 16px 24px; border-bottom: 1px solid #ebeef5; display: flex; justify-content: space-between; align-items: center; }
+  .modal-header h3 { font-size: 16px; color: #303133; }
+  .modal-close { cursor: pointer; color: #909399; font-size: 18px; border: none; background: none; }
+  .modal-body { padding: 24px; }
+  .modal-footer { padding: 14px 24px; border-top: 1px solid #ebeef5; display: flex; justify-content: flex-end; gap: 10px; }
+  .modal-footer .btn { height: 34px; font-size: 13px; padding: 0 16px; }
+  .confirm-text { color: #606266; font-size: 14px; }
+
+  /* 轻提示 */
+  .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #f0f9eb; border: 1px solid #e1f3d8; color: #67c23a; padding: 10px 20px; border-radius: 6px; display: none; z-index: 2000; font-size: 14px; }
+  .toast.show { display: block; }
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="logo">📚 图书借阅系统</div>
+    <div class="menu" id="sideMenu"></div>
+  </aside>
+  <div class="main">
+    <header class="header">
+      <div class="title">个人资料</div>
+      <div class="user">
+        <div class="avatar" id="avatarEl">张</div>
+        <span id="roleName">读者（张三）</span>
+      </div>
+    </header>
+    <div class="content">
+
+      <div class="profile-card">
+        <h3>基本信息</h3>
+        <div class="form-item">
+          <label>用户名</label>
+          <input type="text" id="username" readonly />
+        </div>
+        <div class="form-item">
+          <label>姓名</label>
+          <input type="text" id="realName" readonly />
+        </div>
+        <div class="form-item">
+          <label><span class="req">*</span>手机号</label>
+          <input type="text" id="phone" placeholder="请输入11位手机号" maxlength="11" />
+          <div class="error-msg" id="phoneErr">请输入11位数字手机号</div>
+        </div>
+        <div class="form-item">
+          <label><span class="req">*</span>邮箱</label>
+          <input type="text" id="email" placeholder="请输入邮箱" />
+          <div class="error-msg" id="emailErr">邮箱格式不正确（需包含@符号）</div>
+        </div>
+        <div class="action-row">
+          <button class="btn btn-primary" onclick="saveProfile()">保存修改</button>
+          <button class="btn btn-danger" onclick="askLogout()">退出登录</button>
+        </div>
+      </div>
+
+      <!-- 修改密码区域（与基本信息用标题+分割线区分） -->
+      <div class="profile-card pwd-card">
+        <h3>修改密码</h3>
+        <div class="form-item">
+          <label><span class="req">*</span>原密码</label>
+          <input type="password" id="oldPwd" placeholder="请输入原密码" />
+          <div class="error-msg" id="oldPwdErr">请输入原密码</div>
+        </div>
+        <div class="form-item">
+          <label><span class="req">*</span>新密码</label>
+          <input type="password" id="newPwd" placeholder="请输入新密码，6-20位" maxlength="20" />
+          <div class="error-msg" id="newPwdErr">新密码长度为6-20位</div>
+        </div>
+        <div class="form-item">
+          <label><span class="req">*</span>确认新密码</label>
+          <input type="password" id="confirmPwd" placeholder="请再次输入新密码" maxlength="20" />
+          <div class="error-msg" id="confirmPwdErr">两次输入的密码不一致</div>
+        </div>
+        <div class="action-row" style="margin-top:8px">
+          <button class="btn btn-primary" onclick="changePassword()">确认修改</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- 退出登录确认弹窗 -->
+<div class="modal-mask" id="logoutModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>退出登录</h3>
+      <button class="modal-close" onclick="closeLogout()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-text">确认退出登录吗？</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="closeLogout()" style="background:#fff;color:#606266;border:1px solid #dcdfe6">取消</button>
+      <button class="btn btn-primary" onclick="confirmLogout()">确认退出</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="shared-data.js"></script>
+<script>
+function lbGet(key, def) {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : def; } catch (e) { return def; }
+}
+function lbSet(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+
+// 登录拦截：未登录跳转登录页；角色取自当前登录用户（不再依赖 URL 参数）
+const session = LB.requireLogin();
+if (!session) throw new Error('未登录，已跳转登录页');
+const role = session.role === 'admin' ? 'admin' : 'reader';
+
+const MENUS = role === 'admin'
+  ? [
+      { icon: '📖', text: '图书管理', href: 'admin-books.html' },
+      { icon: '🏷️', text: '分类管理', href: 'admin-categories.html' },
+      { icon: '📋', text: '借阅记录', href: 'admin-records.html' }
+    ]
+  : [
+      { icon: '📚', text: '图书浏览', href: 'reader-books.html' },
+      { icon: '📅', text: '我的借阅', href: 'reader-my-borrows.html' },
+      { icon: '⭐', text: '我的收藏', href: 'reader-favorites.html' }
+    ];
+document.getElementById('sideMenu').innerHTML = MENUS.map(function (m) {
+  return '<a class="menu-item" href="' + m.href + '">' + m.icon + ' ' + m.text + '</a>';
+}).join('');
+
+// 个人资料：从 localStorage 用户列表读取当前登录用户的完整信息
+const userRec = LB.findUser(session.username) || { phone: '', email: '' };
+
+function renderProfile() {
+  document.getElementById('username').value = session.username;
+  document.getElementById('realName').value = session.realName || session.username;
+  document.getElementById('phone').value = userRec.phone || '';
+  document.getElementById('email').value = userRec.email || '';
+  LB.renderHeaderUser('avatarEl', 'roleName');
+  if (role === 'admin') document.title = '个人资料 - 管理员';
+}
+renderProfile();
+
+function setErr(id, show) {
+  document.getElementById(id).classList.toggle('show', show);
+}
+
+// 保存修改：校验手机号（11位数字）与邮箱（含@），通过后同步更新用户列表并提示
+function saveProfile() {
+  const phone = document.getElementById('phone').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const phoneOk = /^\d{11}$/.test(phone);
+  const emailOk = /.+@.+/.test(email);
+  document.getElementById('phone').classList.toggle('err', !phoneOk);
+  document.getElementById('email').classList.toggle('err', !emailOk);
+  setErr('phoneErr', !phoneOk);
+  setErr('emailErr', !emailOk);
+  if (!phoneOk || !emailOk) return;
+  // 同步更新 localStorage 中用户列表的对应用户记录
+  LB.updateUserProfile(session.username, { phone: phone, email: email });
+  userRec.phone = phone;
+  userRec.email = email;
+  showToast('保存成功');
+}
+
+// 修改密码：统一存取 lib_users 用户列表（预置管理员与注册用户同源）
+function currentPwdRecord() { return LB.findUser(session.username); }
+
+function resetPwdErrors() {
+  ['oldPwd', 'newPwd', 'confirmPwd'].forEach(function (id) { document.getElementById(id).classList.remove('err'); });
+  ['oldPwdErr', 'newPwdErr', 'confirmPwdErr'].forEach(function (id) { document.getElementById(id).classList.remove('show'); });
+}
+
+// 校验通过返回 true；不通过时在对应输入框下方显示红字错误
+function changePassword() {
+  resetPwdErrors();
+  const oldPwd = document.getElementById('oldPwd').value;
+  const newPwd = document.getElementById('newPwd').value;
+  const confirmPwd = document.getElementById('confirmPwd').value;
+
+  // 1. 原密码：不能为空，且必须与 localStorage 中当前登录用户的密码一致
+  if (!oldPwd) {
+    document.getElementById('oldPwdErr').textContent = '请输入原密码';
+    document.getElementById('oldPwd').classList.add('err');
+    document.getElementById('oldPwdErr').classList.add('show');
+    return;
+  }
+  // 原密码须与用户列表中当前登录用户的密码一致
+  const rec = currentPwdRecord();
+  if (!rec || oldPwd !== rec.password) {
+    document.getElementById('oldPwdErr').textContent = '原密码不正确';
+    document.getElementById('oldPwd').classList.add('err');
+    document.getElementById('oldPwdErr').classList.add('show');
+    return;
+  }
+  // 2. 新密码长度 6-20 位
+  if (newPwd.length < 6 || newPwd.length > 20) {
+    document.getElementById('newPwdErr').textContent = '新密码长度为6-20位';
+    document.getElementById('newPwd').classList.add('err');
+    document.getElementById('newPwdErr').classList.add('show');
+    return;
+  }
+  // 3. 两次新密码必须一致
+  if (newPwd !== confirmPwd) {
+    document.getElementById('confirmPwdErr').textContent = '两次输入的密码不一致';
+    document.getElementById('confirmPwd').classList.add('err');
+    document.getElementById('confirmPwdErr').classList.add('show');
+    return;
+  }
+  // 4. 新密码不能与原密码相同
+  if (newPwd === oldPwd) {
+    document.getElementById('newPwdErr').textContent = '新密码不能与原密码相同';
+    document.getElementById('newPwd').classList.add('err');
+    document.getElementById('newPwdErr').classList.add('show');
+    return;
+  }
+
+  // 校验通过：先写 localStorage 用户列表，再提示、清除登录态并跳转
+  LB.updateUserPwd(session.username, newPwd);
+
+  showToast('密码修改成功，请重新登录');
+  setTimeout(function () {
+    LB.clearSession();                       // 清除当前登录用户信息
+    location.replace('login.html');          // replace 跳转，后退不可回业务页
+  }, 2000);
+}
+
+// 退出登录：确认后清除登录态并跳转登录页
+function askLogout() {
+  document.getElementById('logoutModal').classList.add('show');
+}
+function closeLogout() {
+  document.getElementById('logoutModal').classList.remove('show');
+}
+function confirmLogout() {
+  LB.clearSession();      // 清除当前登录用户信息
+  closeLogout();
+  location.replace('login.html');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(function () { t.classList.remove('show'); }, 2000);
+}
+</script>
+</body>
+</html>

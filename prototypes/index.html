@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>图书借阅管理系统 - UI 原型导航</title>
+<link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css" />
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    color: #303133;
+  }
+  .container { max-width: 1100px; margin: 0 auto; padding: 48px 24px; }
+  .header { text-align: center; margin-bottom: 48px; color: #fff; }
+  .header h1 { font-size: 32px; margin-bottom: 12px; }
+  .header p { font-size: 15px; opacity: 0.9; }
+  .group-title {
+    color: #fff; font-size: 18px; margin: 28px 0 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .group-title::before {
+    content: ""; width: 4px; height: 18px; background: #fff; border-radius: 2px;
+  }
+  .grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+  }
+  .card {
+    background: #fff; border-radius: 10px; padding: 20px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    transition: transform 0.2s, box-shadow 0.2s; cursor: pointer;
+    text-decoration: none; color: inherit; display: block;
+  }
+  .card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(0,0,0,0.18); }
+  .card .icon { font-size: 28px; margin-bottom: 10px; color: #409eff; }
+  .card h3 { font-size: 16px; margin-bottom: 6px; }
+  .card p { font-size: 13px; color: #909399; line-height: 1.5; }
+  .role-tag {
+    display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 10px;
+    margin-bottom: 8px;
+  }
+  .tag-admin { background: #ecf5ff; color: #409eff; }
+  .tag-reader { background: #f0f9eb; color: #67c23a; }
+  .tag-public { background: #fdf6ec; color: #e6a23c; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>📚 图书借阅管理系统 · UI 原型</h1>
+    <p>PC 端 · Vue 3 + TypeScript + Element Plus · 点击卡片查看对应页面原型</p>
+  </div>
+
+  <div class="group-title">公共页面</div>
+  <div class="grid">
+    <a class="card" href="login.html">
+      <div class="icon">🔐</div>
+      <span class="role-tag tag-public">公共</span>
+      <h3>登录页</h3>
+      <p>用户名 + 密码登录，角色自动识别，读者注册入口</p>
+    </a>
+    <a class="card" href="register.html">
+      <div class="icon">📝</div>
+      <span class="role-tag tag-public">公共</span>
+      <h3>注册页</h3>
+      <p>读者自助注册，仅可注册为读者角色</p>
+    </a>
+  </div>
+
+  <div class="group-title">管理员端</div>
+  <div class="grid">
+    <a class="card" href="admin-books.html">
+      <div class="icon">📖</div>
+      <span class="role-tag tag-admin">管理员</span>
+      <h3>图书管理</h3>
+      <p>图书列表、搜索筛选、新增/编辑/删除、封面上传</p>
+    </a>
+    <a class="card" href="admin-categories.html">
+      <div class="icon">🏷️</div>
+      <span class="role-tag tag-admin">管理员</span>
+      <h3>分类管理</h3>
+      <p>分类列表、新增/修改/删除，绑定图书时禁止删除</p>
+    </a>
+    <a class="card" href="admin-records.html">
+      <div class="icon">📋</div>
+      <span class="role-tag tag-admin">管理员</span>
+      <h3>借阅记录</h3>
+      <p>全馆借阅记录、筛选、办理归还、逾期标识</p>
+    </a>
+  </div>
+
+  <div class="group-title">读者端</div>
+  <div class="grid">
+    <a class="card" href="reader-books.html">
+      <div class="icon">📚</div>
+      <span class="role-tag tag-reader">读者</span>
+      <h3>图书浏览</h3>
+      <p>图书列表/卡片、搜索筛选、借阅按钮</p>
+    </a>
+    <a class="card" href="reader-book-detail.html">
+      <div class="icon">📄</div>
+      <span class="role-tag tag-reader">读者</span>
+      <h3>图书详情</h3>
+      <p>图书完整信息、可借数量、借阅操作</p>
+    </a>
+    <a class="card" href="reader-my-borrows.html">
+      <div class="icon">📅</div>
+      <span class="role-tag tag-reader">读者</span>
+      <h3>我的借阅</h3>
+      <p>本人借阅记录、归还操作、逾期醒目提示</p>
+    </a>
+  </div>
+</div>
+</body>
+</html>

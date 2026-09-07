@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>登录 - 图书借阅管理系统</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .login-wrap {
+    width: 440px; background: #fff; border-radius: 14px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2); overflow: hidden;
+  }
+  .login-header {
+    padding: 36px 32px 20px; text-align: center;
+    background: linear-gradient(135deg, #409eff, #5b8def);
+  }
+  .login-header .logo { font-size: 40px; }
+  .login-header h2 { color: #fff; font-size: 22px; margin-top: 8px; }
+  .login-header p { color: rgba(255,255,255,0.85); font-size: 13px; margin-top: 4px; }
+  .login-body { padding: 24px 32px 32px; }
+  .error-tip {
+    background: #fef0f0; border: 1px solid #fbc4c4; color: #f56c6c;
+    font-size: 13px; padding: 8px 12px; border-radius: 6px; margin-bottom: 16px;
+    display: none; align-items: flex-start; gap: 6px; line-height: 1.6;
+  }
+  .error-tip.show { display: flex; }
+  .error-tip .tip-text { flex: 1; word-break: keep-all; white-space: normal; overflow-wrap: break-word; }
+  .form-item { margin-bottom: 18px; }
+  .form-item label { display: block; font-size: 13px; color: #606266; font-weight: 500; padding-bottom: 6px; }
+  .form-item input {
+    width: 100%; height: 44px; padding: 0 14px; border: 1px solid #dcdfe6;
+    border-radius: 8px; font-size: 14px; outline: none;
+  }
+  .form-item input:focus { border-color: #409eff; }
+  .login-btn {
+    width: 100%; height: 44px; font-size: 15px; border: none; border-radius: 8px;
+    background: #409eff; color: #fff; cursor: pointer; margin-top: 4px;
+  }
+  .login-btn:hover { background: #66b1ff; }
+  .register-link { text-align: center; margin-top: 16px; font-size: 13px; color: #909399; }
+  .register-link a { color: #409eff; text-decoration: none; }
+  .register-link a:hover { text-decoration: underline; }
+  .back { position: fixed; top: 20px; left: 20px; color: #fff; text-decoration: none; font-size: 13px; opacity: 0.85; }
+  .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #f0f9eb; border: 1px solid #e1f3d8; color: #67c23a; padding: 10px 20px; border-radius: 6px; display: none; z-index: 2000; font-size: 14px; }
+  .toast.show { display: block; }
+</style>
+</head>
+<body>
+<a class="back" href="index.html">← 返回原型导航</a>
+<div class="login-wrap">
+  <div class="login-header">
+    <div class="logo">📚</div>
+    <h2>图书借阅管理系统</h2>
+    <p>欢迎登录，请输入您的账号信息</p>
+  </div>
+  <div class="login-body">
+    <div class="error-tip" id="loginErr">
+      <span>⚠</span>
+      <span class="tip-text" id="loginErrText"></span>
+    </div>
+    <div class="form-item">
+      <label>用户名</label>
+      <input type="text" id="username" placeholder="请输入用户名" oninput="hideError()" />
+    </div>
+    <div class="form-item">
+      <label>密码</label>
+      <input type="password" id="password" placeholder="请输入密码" oninput="hideError()" onkeydown="if(event.key==='Enter')doLogin()" />
+    </div>
+    <button class="login-btn" onclick="doLogin()">登 录</button>
+    <div class="register-link">
+      还没有账号？<a href="register.html">立即注册</a>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="shared-data.js"></script>
+<script>
+function showError(msg) {
+  document.getElementById('loginErrText').textContent = msg;
+  document.getElementById('loginErr').classList.add('show');
+}
+function hideError() { document.getElementById('loginErr').classList.remove('show'); }
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(function () { t.classList.remove('show'); }, 2000);
+}
+
+// 登录：从 localStorage 用户列表（含预置管理员 admin/123456）验证，成功后存登录态并按角色跳转
+function doLogin() {
+  hideError();
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+  if (!username || !password) { showError('请输入用户名和密码'); return; }
+  const user = LB.findUser(username);
+  if (!user) { showError('用户名不存在'); return; }
+  if (user.password !== password) { showError('密码错误'); return; }
+  LB.setSession(user);   // 存当前登录用户：用户名、角色、姓名
+  showToast('登录成功，正在跳转...');
+  setTimeout(function () {
+    location.href = user.role === 'admin' ? 'admin-books.html' : 'reader-books.html';
+  }, 800);
+}
+</script>
+</body>
+</html>

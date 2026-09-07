@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>分类管理 - 管理员</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f0f2f5; font-size: 14px; }
+  .layout { display: flex; height: 100vh; }
+  .sidebar { width: 220px; background: #1f2d3d; color: #fff; flex-shrink: 0; }
+  .sidebar .logo { padding: 20px; font-size: 18px; font-weight: bold; border-bottom: 1px solid #2d3e50; }
+  .sidebar .menu { padding: 10px 0; }
+  .sidebar .menu-item { padding: 14px 20px; cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 14px; text-decoration: none; color: #ffffff; }
+  .sidebar .menu-item:hover { background: #2d3e50; color: #ffffff; }
+  .sidebar .menu-item.active { background: #409eff; color: #ffffff; }
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+  .header { height: 60px; background: #fff; box-shadow: 0 1px 4px rgba(0,21,41,0.08); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; flex-shrink: 0; }
+  .header .title { font-size: 16px; font-weight: 600; color: #303133; }
+  .header .user { display: flex; align-items: center; gap: 10px; font-size: 14px; color: #606266; cursor: pointer; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: #409eff; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  .content { flex: 1; padding: 20px; overflow: auto; }
+
+  .toolbar { background: #fff; padding: 16px 20px; border-radius: 8px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+  .toolbar .count { color: #606266; }
+  .table-card { background: #fff; border-radius: 8px; padding: 16px 20px; overflow-x: auto; }
+  table { width: 100%; min-width: 640px; border-collapse: collapse; }
+  th, td { padding: 12px 10px; text-align: left; border-bottom: 1px solid #ebeef5; font-size: 14px; white-space: nowrap; }
+  th { background: #f5f7fa; color: #303133; font-weight: 600; }
+  tbody tr:hover { background: #f5f7fa; }
+  .btn { height: 32px; padding: 0 14px; border: 1px solid #dcdfe6; border-radius: 4px; background: #fff; color: #606266; cursor: pointer; font-size: 13px; }
+  .btn:hover { color: #409eff; border-color: #c6e2ff; background: #ecf5ff; }
+  .btn-primary { background: #409eff; border-color: #409eff; color: #fff; }
+  .btn-primary:hover { background: #66b1ff; border-color: #66b1ff; color: #fff; }
+  .btn-danger { color: #f56c6c; }
+  .btn-danger:hover { color: #fff; background: #f56c6c; border-color: #f56c6c; }
+  .btn:disabled, .btn.disabled { color: #c0c4cc; cursor: not-allowed; background: #f5f7fa; border-color: #e4e7ed; }
+  .btn:disabled:hover, .btn.disabled:hover { color: #c0c4cc; background: #f5f7fa; border-color: #e4e7ed; }
+  .link-btn { border: none; background: none; cursor: pointer; font-size: 13px; padding: 2px 4px; }
+  .link-edit { color: #409eff; }
+  .link-del { color: #f56c6c; }
+  .link-del.disabled { color: #c0c4cc; cursor: not-allowed; }
+
+  /* 弹窗 */
+  .modal-mask { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: flex-start; justify-content: center; padding-top: 15vh; }
+  .modal-mask.show { display: flex; }
+  .modal { background: #fff; border-radius: 8px; width: 420px; }
+  .modal-header { padding: 16px 20px; border-bottom: 1px solid #ebeef5; display: flex; justify-content: space-between; align-items: center; }
+  .modal-header h3 { font-size: 16px; color: #303133; }
+  .modal-close { cursor: pointer; color: #909399; font-size: 18px; border: none; background: none; }
+  .modal-body { padding: 20px; }
+  .modal-body label { display: block; color: #606266; margin-bottom: 6px; }
+  .modal-body input { width: 100%; height: 38px; padding: 0 12px; border: 1px solid #dcdfe6; border-radius: 4px; font-size: 14px; outline: none; }
+  .modal-body input:focus { border-color: #409eff; }
+  .modal-body input.err { border-color: #f56c6c; }
+  .error-msg { display: none; color: #f56c6c; font-size: 12px; margin-top: 4px; }
+  .error-msg.show { display: block; }
+  .modal-footer { padding: 12px 20px; border-top: 1px solid #ebeef5; display: flex; justify-content: flex-end; gap: 10px; }
+  .confirm-text { color: #606266; }
+  .confirm-text .warn { color: #e6a23c; }
+
+  .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #f0f9eb; border: 1px solid #e1f3d8; color: #67c23a; padding: 10px 20px; border-radius: 6px; display: none; z-index: 2000; }
+  .toast.show { display: block; }
+  .toast.err { background: #fef0f0; border-color: #fde2e2; color: #f56c6c; }
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="logo">📚 图书借阅系统</div>
+    <div class="menu">
+      <a class="menu-item" href="admin-books.html">📖 图书管理</a>
+      <a class="menu-item active">🏷️ 分类管理</a>
+      <a class="menu-item" href="admin-records.html">📋 借阅记录</a>
+    </div>
+  </aside>
+  <div class="main">
+    <header class="header">
+      <div class="title">分类管理</div>
+      <div class="user" onclick="location.href='reader-profile.html'">
+        <div class="avatar" id="avatarEl">管</div>
+        <span id="userText">管理员</span>
+      </div>
+    </header>
+    <div class="content">
+      <div class="toolbar">
+        <div class="count">共 <b id="catCount">0</b> 个分类</div>
+        <button class="btn btn-primary" onclick="openDialog('add')">+ 新增分类</button>
+      </div>
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:70px;text-align:center">序号</th>
+              <th>分类名称</th>
+              <th style="width:120px;text-align:center">关联图书数</th>
+              <th style="width:160px">创建时间</th>
+              <th style="width:140px;text-align:center">操作</th>
+            </tr>
+          </thead>
+          <tbody id="catTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 新增/修改分类弹窗 -->
+<div class="modal-mask" id="editModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="editTitle">新增分类</h3>
+      <button class="modal-close" onclick="closeDialog()">×</button>
+    </div>
+    <div class="modal-body">
+      <label><span style="color:#f56c6c">*</span> 分类名称</label>
+      <input type="text" id="catName" placeholder="请输入分类名称" maxlength="20" />
+      <div class="error-msg" id="nameErr"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeDialog()">取消</button>
+      <button class="btn btn-primary" onclick="submitCat()">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 删除确认弹窗 -->
+<div class="modal-mask" id="delModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>删除分类</h3>
+      <button class="modal-close" onclick="closeDel()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-text" id="delText"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeDel()">取消</button>
+      <button class="btn btn-primary" onclick="confirmDel()">确认删除</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="shared-data.js"></script>
+<script>
+// 登录拦截+角色校验：仅管理员可访问；顶栏渲染当前登录用户
+LB.requireRole('admin');
+LB.renderHeaderUser('avatarEl', 'userText');
+</script>
+<script>
+let editMode = 'add';   // add | edit
+let editId = null;
+let delId = null;
+
+function showToast(msg, isErr) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isErr ? ' err' : '');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(function () { t.className = 'toast' + (isErr ? ' err' : ''); }, 2200);
+}
+
+function render() {
+  const cats = LB.getCats();
+  document.getElementById('catCount').textContent = cats.length;
+  const tbody = document.getElementById('catTbody');
+  tbody.innerHTML = cats.map(function (c, i) {
+    const n = LB.catBookCount(c.id);
+    const delDisabled = n > 0;
+    return '<tr>' +
+      '<td style="text-align:center">' + (i + 1) + '</td>' +
+      '<td>' + c.name + '</td>' +
+      '<td style="text-align:center">' + n + '</td>' +
+      '<td>' + c.createdAt + '</td>' +
+      '<td style="text-align:center">' +
+        '<button class="link-btn link-edit" onclick="openDialog(\'edit\',' + c.id + ')">修改</button>' +
+        '<button class="link-btn link-del' + (delDisabled ? ' disabled' : '') + '" ' +
+          (delDisabled
+            ? 'title="该分类下有 ' + n + ' 本图书，无法删除" onclick="blockDel(' + c.id + ')"'
+            : 'onclick="askDel(' + c.id + ')"') + '>删除</button>' +
+      '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function openDialog(mode, id) {
+  editMode = mode;
+  editId = id || null;
+  document.getElementById('editTitle').textContent = mode === 'add' ? '新增分类' : '修改分类';
+  const input = document.getElementById('catName');
+  input.value = mode === 'edit' ? LB.getCats().filter(function (c) { return c.id === id; })[0].name : '';
+  input.classList.remove('err');
+  document.getElementById('nameErr').classList.remove('show');
+  document.getElementById('editModal').classList.add('show');
+  setTimeout(function () { input.focus(); }, 50);
+}
+function closeDialog() { document.getElementById('editModal').classList.remove('show'); }
+
+function submitCat() {
+  const name = document.getElementById('catName').value.trim();
+  const errEl = document.getElementById('nameErr');
+  const input = document.getElementById('catName');
+  if (!name) {
+    input.classList.add('err');
+    errEl.textContent = '分类名称不能为空';
+    errEl.classList.add('show');
+    return;
+  }
+  const dup = LB.getCats().some(function (c) { return c.name === name && c.id !== editId; });
+  if (dup) {
+    input.classList.add('err');
+    errEl.textContent = '分类名称已存在';
+    errEl.classList.add('show');
+    return;
+  }
+  // 先写 localStorage，再刷新 DOM
+  if (editMode === 'add') {
+    LB.addCat(name);
+    showToast('新增分类成功');
+  } else {
+    LB.renameCat(editId, name);
+    showToast('修改分类成功');
+  }
+  closeDialog();
+  render();
+}
+
+function askDel(id) {
+  delId = id;
+  const c = LB.getCats().filter(function (x) { return x.id === id; })[0];
+  document.getElementById('delText').innerHTML =
+    '确认删除分类「' + c.name + '」吗？';
+  document.getElementById('delModal').classList.add('show');
+}
+/** 分类下仍有图书时点击删除：禁止并提示数量 */
+function blockDel(id) {
+  showToast('该分类下有 ' + LB.catBookCount(id) + ' 本图书，无法删除', true);
+}
+function closeDel() { document.getElementById('delModal').classList.remove('show'); }
+function confirmDel() {
+  const n = LB.catBookCount(delId);
+  if (n > 0) {
+    showToast('该分类下有 ' + n + ' 本图书，无法删除', true);
+  } else if (LB.deleteCat(delId)) {
+    showToast('删除成功');   // 先写 localStorage，再刷新 DOM
+  } else {
+    showToast('该分类下有 ' + LB.catBookCount(delId) + ' 本图书，无法删除', true);
+  }
+  closeDel();
+  render();
+}
+
+render();
+</script>
+</body>
+</html>

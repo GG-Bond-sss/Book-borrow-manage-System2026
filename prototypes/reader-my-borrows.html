@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>我的借阅 - 图书借阅系统</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f0f2f5; font-size: 14px; }
+  .layout { display: flex; height: 100vh; }
+  .sidebar { width: 220px; background: #1f2d3d; color: #fff; flex-shrink: 0; }
+  .sidebar .logo { padding: 20px; font-size: 18px; font-weight: bold; border-bottom: 1px solid #2d3e50; }
+  .sidebar .menu { padding: 10px 0; }
+  .sidebar .menu-item { padding: 14px 20px; cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 14px; text-decoration: none; color: #ffffff; }
+  .sidebar .menu-item:hover { background: #2d3e50; color: #ffffff; }
+  .sidebar .menu-item.active { background: #409eff; color: #ffffff; }
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+  .header { height: 60px; background: #fff; box-shadow: 0 1px 4px rgba(0,21,41,0.08); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; flex-shrink: 0; }
+  .header .title { font-size: 16px; font-weight: 600; color: #303133; }
+  .header .user { display: flex; align-items: center; gap: 10px; font-size: 14px; color: #606266; cursor: pointer; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: #67c23a; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  .content { flex: 1; padding: 20px; overflow: auto; }
+
+  .stat-row { display: flex; gap: 16px; margin-bottom: 16px; }
+  .stat-card { flex: 1; background: #fff; border-radius: 8px; padding: 18px 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  .stat-card .num { font-size: 26px; font-weight: bold; color: #409eff; }
+  .stat-card .num.red { color: #f56c6c; }
+  .stat-card .num.green { color: #67c23a; }
+  .stat-card .num.gray { color: #909399; }
+  .stat-card .label { color: #909399; font-size: 13px; margin-top: 4px; }
+
+  .alert { background: #fef0f0; border: 1px solid #fde2e2; color: #f56c6c; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; }
+
+  .tabs { background: #fff; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; display: flex; gap: 10px; }
+  .tab { padding: 6px 18px; border-radius: 16px; cursor: pointer; color: #606266; font-size: 13px; border: 1px solid #dcdfe6; background: #fff; }
+  .tab:hover { color: #409eff; border-color: #c6e2ff; }
+  .tab.active { background: #409eff; border-color: #409eff; color: #fff; }
+
+  .table-card { background: #fff; border-radius: 8px; padding: 16px 20px; overflow-x: auto; }
+  table { width: 100%; min-width: 720px; border-collapse: collapse; }
+  th, td { padding: 12px 10px; text-align: left; border-bottom: 1px solid #ebeef5; font-size: 14px; white-space: nowrap; }
+  th { background: #f5f7fa; color: #303133; font-weight: 600; }
+  tbody tr:hover { background: #f5f7fa; }
+  .overdue { color: #f56c6c; font-weight: 600; }
+  .tag { display: inline-block; padding: 2px 10px; border-radius: 4px; font-size: 12px; }
+  .tag-borrowed { background: #ecf5ff; color: #409eff; }
+  .tag-returned { background: #f0f9eb; color: #67c23a; }
+  .tag-overdue { background: #fef0f0; color: #f56c6c; }
+  .link-btn { border: none; background: none; cursor: pointer; font-size: 13px; padding: 2px 4px; color: #f56c6c; }
+  .dash { color: #c0c4cc; }
+
+  .pagination { display: flex; justify-content: flex-end; align-items: center; gap: 6px; margin-top: 16px; color: #606266; font-size: 13px; }
+  .pagination button { min-width: 30px; height: 30px; border: 1px solid #dcdfe6; background: #fff; border-radius: 4px; cursor: pointer; color: #606266; }
+  .pagination button.active { background: #409eff; border-color: #409eff; color: #fff; }
+  .pagination button:disabled { color: #c0c4cc; cursor: not-allowed; background: #f5f7fa; }
+
+  .modal-mask { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: flex-start; justify-content: center; padding-top: 18vh; }
+  .modal-mask.show { display: flex; }
+  .modal { background: #fff; border-radius: 8px; width: 400px; }
+  .modal-header { padding: 16px 20px; border-bottom: 1px solid #ebeef5; display: flex; justify-content: space-between; align-items: center; }
+  .modal-header h3 { font-size: 16px; color: #303133; }
+  .modal-close { cursor: pointer; color: #909399; font-size: 18px; border: none; background: none; }
+  .modal-body { padding: 20px; color: #606266; }
+  .modal-footer { padding: 12px 20px; border-top: 1px solid #ebeef5; display: flex; justify-content: flex-end; gap: 10px; }
+  .btn { height: 34px; padding: 0 16px; border: 1px solid #dcdfe6; border-radius: 4px; background: #fff; color: #606266; cursor: pointer; font-size: 13px; }
+  .btn:hover { color: #409eff; border-color: #c6e2ff; background: #ecf5ff; }
+  .btn-primary { background: #409eff; border-color: #409eff; color: #fff; }
+  .btn-primary:hover { background: #66b1ff; border-color: #66b1ff; color: #fff; }
+
+  .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #f0f9eb; border: 1px solid #e1f3d8; color: #67c23a; padding: 10px 20px; border-radius: 6px; display: none; z-index: 2000; }
+  .toast.show { display: block; }
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="logo">📚 图书借阅系统</div>
+    <div class="menu">
+      <a class="menu-item" href="reader-books.html">📚 图书浏览</a>
+      <a class="menu-item active">📅 我的借阅</a>
+      <a class="menu-item" href="reader-favorites.html">⭐ 我的收藏</a>
+    </div>
+  </aside>
+  <div class="main">
+    <header class="header">
+      <div class="title">我的借阅</div>
+      <div class="user" onclick="location.href='reader-profile.html'">
+        <div class="avatar" id="avatarEl">读</div>
+        <span id="userText">读者</span>
+      </div>
+    </header>
+    <div class="content">
+
+      <div class="stat-row">
+        <div class="stat-card"><div class="num" id="statBorrowing">0</div><div class="label">借阅中</div></div>
+        <div class="stat-card"><div class="num red" id="statOverdue">0</div><div class="label">已逾期</div></div>
+        <div class="stat-card"><div class="num green" id="statTotal">0</div><div class="label">累计借阅</div></div>
+        <div class="stat-card"><div class="num gray">5</div><div class="label">借阅上限（册）</div></div>
+      </div>
+
+      <div class="alert" id="overdueAlert" style="display:none">您有 <b id="overdueNum">0</b> 本图书已逾期，请尽快归还（逾期不影响还书操作）。</div>
+
+      <div class="tabs">
+        <div class="tab active" data-st="" onclick="setTab(this)">全部</div>
+        <div class="tab" data-st="borrowed" onclick="setTab(this)">借阅中</div>
+        <div class="tab" data-st="overdue" onclick="setTab(this)">逾期</div>
+        <div class="tab" data-st="returned" onclick="setTab(this)">已归还</div>
+      </div>
+
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr>
+              <th>图书</th>
+              <th style="width:150px">借出时间</th>
+              <th style="width:150px">应还时间</th>
+              <th style="width:150px">实际归还</th>
+              <th style="width:90px;text-align:center">状态</th>
+              <th style="width:90px;text-align:center">操作</th>
+            </tr>
+          </thead>
+          <tbody id="recTbody"></tbody>
+        </table>
+        <div class="pagination" id="pager"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- 归还确认弹窗 -->
+<div class="modal-mask" id="retModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>归还图书</h3>
+      <button class="modal-close" onclick="closeRet()">×</button>
+    </div>
+    <div class="modal-body" id="retText"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeRet()">取消</button>
+      <button class="btn btn-primary" onclick="confirmRet()">确认归还</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="shared-data.js"></script>
+<script>
+// 登录拦截：未登录跳转登录页；顶栏渲染当前登录用户
+LB.requireLogin();
+LB.renderHeaderUser('avatarEl', 'userText');
+</script>
+<script>
+const PAGE_SIZE = 8;
+let filterStatus = '';
+let page = 1;
+let retId = null;
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(function () { t.classList.remove('show'); }, 2200);
+}
+
+function myRecords() {
+  return LB.myRecords();
+}
+function statusTag(s) {
+  if (s === 'returned') return '<span class="tag tag-returned">已归还</span>';
+  if (s === 'overdue') return '<span class="tag tag-overdue">已逾期</span>';
+  return '<span class="tag tag-borrowed">借阅中</span>';
+}
+
+function render() {
+  const all = myRecords();
+  const borrowing = all.filter(function (r) { return LB.displayStatus(r) === 'borrowed'; }).length;
+  const overdue = all.filter(function (r) { return LB.displayStatus(r) === 'overdue'; }).length;
+  document.getElementById('statBorrowing').textContent = borrowing;
+  document.getElementById('statOverdue').textContent = overdue;
+  document.getElementById('statTotal').textContent = all.length;
+  document.getElementById('overdueAlert').style.display = overdue ? 'block' : 'none';
+  document.getElementById('overdueNum').textContent = overdue;
+
+  const filtered = all.filter(function (r) {
+    return !filterStatus || LB.displayStatus(r) === filterStatus;
+  });
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  if (page > totalPages) page = totalPages;
+  const rows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  document.getElementById('recTbody').innerHTML = rows.map(function (r) {
+    const s = LB.displayStatus(r);
+    const active = s !== 'returned';
+    return '<tr>' +
+      '<td>《' + r.bookTitle + '》</td>' +
+      '<td>' + r.borrowTime + '</td>' +
+      '<td' + (s === 'overdue' ? ' class="overdue"' : '') + '>' + r.dueTime + '</td>' +
+      '<td>' + (r.returnTime || '<span class="dash">-</span>') + '</td>' +
+      '<td style="text-align:center">' + statusTag(s) + '</td>' +
+      '<td style="text-align:center">' +
+        (active ? '<button class="link-btn" onclick="askRet(\'' + r.id + '\')">归还</button>' : '<span class="dash">—</span>') +
+      '</td>' +
+    '</tr>';
+  }).join('') || '<tr><td colspan="6" style="text-align:center;color:#909399;padding:30px">暂无借阅记录</td></tr>';
+
+  let html = '<span>共 ' + filtered.length + ' 条</span>';
+  html += '<button ' + (page <= 1 ? 'disabled' : '') + ' onclick="goPage(' + (page - 1) + ')">‹</button>';
+  for (let i = 1; i <= totalPages; i++) {
+    html += '<button class="' + (i === page ? 'active' : '') + '" onclick="goPage(' + i + ')">' + i + '</button>';
+  }
+  html += '<button ' + (page >= totalPages ? 'disabled' : '') + ' onclick="goPage(' + (page + 1) + ')">›</button>';
+  document.getElementById('pager').innerHTML = html;
+}
+function goPage(p) { page = p; render(); }
+function setTab(el) {
+  document.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); });
+  el.classList.add('active');
+  filterStatus = el.getAttribute('data-st');
+  page = 1;
+  render();
+}
+
+/* 归还：确认后写 localStorage（状态变更 + 可借数 +1），浏览页同步恢复 */
+function askRet(id) {
+  retId = id;
+  const r = myRecords().filter(function (x) { return x.id === id; })[0];
+  const isOverdue = LB.displayStatus(r) === 'overdue';
+  document.getElementById('retText').innerHTML =
+    '确认归还《' + r.bookTitle + '》吗？' +
+    (isOverdue ? '<br><span style="color:#f56c6c">该书已逾期，归还后状态更新为「已归还」。</span>' : '');
+  document.getElementById('retModal').classList.add('show');
+}
+function closeRet() { document.getElementById('retModal').classList.remove('show'); }
+function confirmRet() {
+  LB.returnBook(retId);
+  closeRet();
+  showToast('归还成功！图书可借数量已恢复');
+  render();
+}
+
+render();
+</script>
+</body>
+</html>
