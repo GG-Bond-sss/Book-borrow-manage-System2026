@@ -1,0 +1,60 @@
+/* 全局样式 */
+* {
+  box-sizing: border-box;
+}
+html, body, #app {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
+  background: #f0f2f5;
+  color: #1f2329;
+}
+
+a { text-decoration: none; color: inherit; }
+
+/* 通用页面卡片容器 */
+.page-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+/* 工具栏 */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+/* 表格状态标签颜色统一 */
+.status-available { color: #67c23a; }
+.status-borrowed { color: #409eff; }
+.status-overdue { color: #f56c6c; font-weight: 600; }
+.status-returned { color: #909399; }
+
+/* 逾期行红色醒目标识 */
+tr.row-overdue { background: #fef0f0 !important; }
+tr.row-overdue:hover > td { background: #fde2e2 !important; }
+
+/* 默认封面 */
+.default-cover {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 22px;
+  border-radius: 4px;
+}
+
+/* 分页右对齐 */
+.pagination-wrap {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
